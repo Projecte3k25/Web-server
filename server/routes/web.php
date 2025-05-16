@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +19,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/assets/{path}', function ($path) {
+    $fullPath = public_path("media/{$path}");
+
+    if (!File::exists($fullPath)) {
+        abort(404);
+    }
+    $mimeType = File::mimeType($fullPath);
+    return response()->file($fullPath, [
+        'Access-Control-Allow-Origin' => '*',
+        'Content-Type' => $mimeType
+    ]);
+})->where('path', '.*');
