@@ -145,6 +145,20 @@ class GameManager
                 $game->refresh();
                 $this->enviarCanviFase($game, 10);
                 break;
+            case 2;
+                $game->estat_torn = 3;
+                $game->torn_player = 1;
+                $game->save();
+                $game->refresh();
+                $this->enviarCanviFase($game, 10);
+                break;
+            case 3;
+                $game->estat_torn = 4;
+                $game->torn_player = 1;
+                $game->save();
+                $game->refresh();
+                $this->enviarCanviFase($game, 10);
+                break;
         }
         
     }
@@ -175,7 +189,6 @@ class GameManager
             $usuari = $jugador2->usuari;
             if(isset(UsuariController::$usuaris[$usuari->id])){
                 $userConn = UsuariController::$usuaris[$usuari->id];
-                echo "  Enviando a ".$usuari->login;
                 $userConn->send(json_encode([
                     "method" => "canviFase",
                     "data" => [
@@ -188,11 +201,75 @@ class GameManager
                         "territoris" => $territoris,
                     ]
                 ]));
-                echo "  Enviado a ".$usuari->login;
             }
         }
-    
     }
+
+    public function accio(ConnectionInterface $from, $data) {
+        $userId = UsuariController::$usuaris_ids[$from->resourceId];
+        $gameId = JugadorController::$partida_jugador[$userId];
+        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $game = $player->partida;
+        $jugadors = $game->jugadors;
+        
+        $territoris = [];
+        foreach ($jugadors as $jugador2) {
+            $okupes = $jugador2->okupes;
+            foreach($okupes as $okupe){
+                $territoris[$okupe->pais->nom] = [
+                    "posicio" => $jugador2->skfNumero,
+                    "tropas" => $okupe->tropes,
+                ];
+            }
+        }
+
+        switch($game->estat_torn){
+            case 2;
+                if(!isset($territoris[$data->territori])){
+                    $game->torn_player = ($game->torn_player % count($jugadors)) + 1;
+                    $territori = Pais::firstWhere("nom",$data->territori);
+                    Okupa::create(["pais_id" => $territori->id, "player_id" => $player->id, "tropes" => 1]);
+                    $player->tropes = $player->tropes - 1;
+                    $player->save();
+                    $game->save();
+                    $game->refresh();
+                    if(count($territoris) == count($this->maps["world"])){
+                        $this->canviFase($from,$data);
+                    }else{
+                        $this->enviarCanviFase($game, 10);
+                    }
+                    
+                }else{
+                    WebsocketManager::error($from,"No pot colocar una tropa en aquest territori.");
+                }
+                break;
+            case 3;
+                if(isset($territoris[$data->territori]) && $territoris[$data->territori]["posicio"] == $player->skfNumero){
+                    $game->torn_player = ($game->torn_player % count($jugadors)) + 1;
+                    $territori = Pais::firstWhere("nom",$data->territori);
+                    $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+                    $okupa->tropes = $okupa->tropes + 1;
+                    $player->tropes = $player->tropes - 1;
+
+                    $player->save();
+                    $okupa->save();
+                    $game->save();
+
+                    $game->refresh();
+                    if($jugadors->sum('tropes') == 0){
+                        $this->canviFase($from, $data);
+                    }else{
+                        $this->enviarCanviFase($game, 10);
+                    }
+                    
+                }else{
+                    WebsocketManager::error($from,"No pot colocar una tropa en aquest territori.");
+                }
+                break;
+        }
+    }
+
+    
 
 }
 

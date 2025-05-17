@@ -55,6 +55,7 @@ class WebsocketManager
 
             "startPartida" =>  function (ConnectionInterface $from, $data) {$this->gameManager->startPartida($from, $data);},
             "loaded" =>  function (ConnectionInterface $from, $data) {$this->gameManager->loaded($from, $data);},
+            "accio" =>  function (ConnectionInterface $from, $data) {$this->gameManager->accio($from, $data);},
         ];  
     }
 
