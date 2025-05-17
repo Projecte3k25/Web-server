@@ -229,7 +229,7 @@ class GameManager
                     $game->torn_player = ($game->torn_player % count($jugadors)) + 1;
                     $territori = Pais::firstWhere("nom",$data->territori);
                     Okupa::create(["pais_id" => $territori->id, "player_id" => $player->id, "tropes" => 1]);
-                    $player->tropes = $player->tropes - 1;
+                    $player->tropas = $player->tropas - 1;
                     $player->save();
                     $game->save();
                     $game->refresh();
@@ -249,7 +249,7 @@ class GameManager
                     $territori = Pais::firstWhere("nom",$data->territori);
                     $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
                     $okupa->tropes = $okupa->tropes + 1;
-                    $player->tropes = $player->tropes - 1;
+                    $player->tropas = $player->tropas - 1;
 
                     $player->save();
                     $okupa->save();
