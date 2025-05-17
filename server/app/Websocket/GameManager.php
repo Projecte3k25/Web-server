@@ -233,6 +233,25 @@ class GameManager
                     $player->save();
                     $game->save();
                     $game->refresh();
+
+                    foreach ($jugadors as $jugador2) {
+                        $usuari = $jugador2->usuari;
+                        if(isset(UsuariController::$usuaris[$usuari->id])){
+                            $userConn = UsuariController::$usuaris[$usuari->id];
+                            $userConn->send(json_encode([
+                                "method" => "accio",
+                                "data" => [
+                                    "territori" => $data->territori,
+                                    "posicio" => $player->skfNumero,
+                                ]
+                            ]));
+                            $userConn->send(json_encode([
+                                "method" => "finalFase",
+                                "data" => []
+                            ]));
+                        }
+                    }
+
                     if(count($territoris) == count($this->maps["world"])){
                         $this->canviFase($from,$data);
                     }else{
@@ -254,8 +273,26 @@ class GameManager
                     $player->save();
                     $okupa->save();
                     $game->save();
-
                     $game->refresh();
+
+                    foreach ($jugadors as $jugador2) {
+                        $usuari = $jugador2->usuari;
+                        if(isset(UsuariController::$usuaris[$usuari->id])){
+                            $userConn = UsuariController::$usuaris[$usuari->id];
+                            $userConn->send(json_encode([
+                                "method" => "accio",
+                                "data" => [
+                                    "territori" => $data->territori,
+                                    "posicio" => $player->skfNumero,
+                                ]
+                            ]));
+                            $userConn->send(json_encode([
+                                "method" => "finalFase",
+                                "data" => []
+                            ]));
+                        }
+                    }
+
                     if($jugadors->sum('tropes') == 0){
                         $this->canviFase($from, $data);
                     }else{
