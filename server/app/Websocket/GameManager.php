@@ -249,6 +249,10 @@ class GameManager
                                 "method" => "finalFase",
                                 "data" => []
                             ]));
+                            $territoris[$data->territori] = [
+                                "posicio" => $player->skfNumero,
+                                "tropas" => 1,
+                            ];
                         }
                     }
 
