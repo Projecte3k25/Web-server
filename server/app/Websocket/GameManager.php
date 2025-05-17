@@ -297,7 +297,7 @@ class GameManager
                         }
                     }
 
-                    if($jugadors->sum('tropes') == 0){
+                    if($jugadors->sum('tropas') == 0){
                         $this->canviFase($from, $data);
                     }else{
                         $this->enviarCanviFase($game, 10);
