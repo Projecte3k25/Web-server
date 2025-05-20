@@ -508,8 +508,8 @@ class GameManager
                                             "dausDefensa" => $numDef,
                                             "from" => $okupa->pais->nom,
                                             "to" => $okupa2->pais->nom,
-                                            "atacTropas" => $dAtack,
-                                            "defTropas" => $dDef,
+                                            "atacTropas" => $pAtack,
+                                            "defTropas" => $pDef,
                                             "conquista" => $conquista
                                         ]
                                     ]));
