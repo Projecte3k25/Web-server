@@ -459,7 +459,7 @@ class GameManager
                         $territori = Pais::firstWhere("nom",$data->to);
                         $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $defensor->id)->first();
 
-                        if($okupa->tropes < $data->tropas){
+                        if($okupa->tropes > $data->tropas){
                             $dAtack = min($data->tropas, 3);
                             $dDef = min($okupa2->tropes, 2);
                             $numAtack = [];
@@ -470,8 +470,9 @@ class GameManager
                             for ($i = 0; $i < $dDef; $i++) {
                                 $numDef[] = random_int(1, 6); 
                             }
-                            $numAtack = rsort($numAtack);
-                            $numDef = rsort($numDef);
+
+                            rsort($numAtack);
+                            rsort($numDef);
 
                             $pAtack = 0;
                             $pDef = 0;
@@ -538,7 +539,7 @@ class GameManager
                             $territori = Pais::firstWhere("nom",$data->to);
                             $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
     
-                            if($okupa->tropes < $data->tropas){
+                            if($okupa->tropes > $data->tropas){
                                 
                                 $okupa->tropes = ($okupa->tropes - $data->tropas);
                                 $okupa2->tropes = ($okupa2->tropes + $data->tropas);
