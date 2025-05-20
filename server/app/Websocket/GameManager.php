@@ -442,16 +442,135 @@ class GameManager
                         }
                     }
                     $game->refresh();
-                    if($game->jugadors->sum('tropas') == 0){
-                        $this->canviFase($from, $data);
-                    }else{
-                        $this->enviarCanviFase($game, 10);
-                    }
-                    
                 }else{
-                    WebsocketManager::error($from,"No pot colocar una tropa en aquest territori.");
+                    WebsocketManager::error($from,"No pot colocar tropes en aquest territori.");
                 }
                 break;
+            case 5:
+                if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
+                    if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] != $player->skfNumero){
+                        if($data->tropas <= 0){
+                            WebsocketManager::error($from,"Has de atacar utlitzant una o més tropes.");
+                            return;
+                        }
+                        $defensor = $game->jugadors()->firstWhere("skfNumero", $territoris[$data->to]["posicio"]);
+                        $territori = Pais::firstWhere("nom",$data->from);
+                        $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+                        $territori = Pais::firstWhere("nom",$data->to);
+                        $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $defensor->id)->first();
+
+                        if($okupa->tropes < $data->tropas){
+                            $dAtack = min($data->tropas, 3);
+                            $dDef = min($okupa2->tropes, 2);
+                            $numAtack = [];
+                            $numDef = [];
+                            for ($i = 0; $i < $dAtack; $i++) {
+                                $numAtack[] = random_int(1, 6); 
+                            }
+                            for ($i = 0; $i < $dDef; $i++) {
+                                $numDef[] = random_int(1, 6); 
+                            }
+                            $numAtack = rsort($numAtack);
+                            $numDef = rsort($numDef);
+
+                            $pAtack = 0;
+                            $pDef = 0;
+                            foreach ($numDef as $key => $value) {
+                                if($numAtack[$key] <= $value){
+                                    $pAtack++;
+                                }else{
+                                    $pDef++;
+                                }
+                            }
+                        
+                            $okupa2->tropes - $pDef;
+                            $conquista = ($okupa2->tropes == 0);
+                            if($conquista){
+                                $okupa->tropes = $data->tropas;
+                                $okupa2->tropes = ($data->tropas - $dAtack);
+                                $okupa2->player_id = $player->id; 
+                            }else{
+                                $okupa->tropes = ($okupa->tropes - $dAtack);
+                                $okupa2->tropes = ($okupa2->tropes - $dDef);
+                            }
+                            $okupa->save();
+                            $okupa2->save();
+
+                            foreach ($jugadors as $jugador2) {
+                                $usuari = $jugador2->usuari;
+                                if(isset(UsuariController::$usuaris[$usuari->id])){
+                                    $userConn = UsuariController::$usuaris[$usuari->id];
+                                    $userConn->send(json_encode([
+                                        "method" => "accio",
+                                        "data" => [
+                                            "dausAtac" => $numAtack,
+                                            "dausDefensa" => $numDef,
+                                            "from" => $okupa->pais->nom,
+                                            "to" => $okupa2->pais->nom,
+                                            "atacTropas" => $dAtack,
+                                            "defTropas" => $dDef,
+                                            "conquista" => $conquista
+                                        ]
+                                    ]));
+        
+                                }
+                            }
+                        }else{
+                            WebsocketManager::error($from,"No tens tropes suficients per atacar.");
+                        }
+                    }else{
+                        WebsocketManager::error($from,"No pots atacar a aquest territori.");
+                    }
+                }else{
+                    WebsocketManager::error($from,"No pots atacar utilitzant aquest territori.");
+                }
+                break;
+            case 6:
+                case 5:
+                    if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
+                        if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] == $player->skfNumero){
+                            if($data->tropas <= 0){
+                                WebsocketManager::error($from,"Has de seleccionar utlitzant una o més tropes per recolocar.");
+                                return;
+                            }
+                            $territori = Pais::firstWhere("nom",$data->from);
+                            $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+                            $territori = Pais::firstWhere("nom",$data->to);
+                            $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+    
+                            if($okupa->tropes < $data->tropas){
+                                
+                                $okupa->tropes = ($okupa->tropes - $data->tropas);
+                                $okupa2->tropes = ($okupa2->tropes + $data->tropas);
+                                
+                                $okupa->save();
+                                $okupa2->save();
+    
+                                foreach ($jugadors as $jugador2) {
+                                    $usuari = $jugador2->usuari;
+                                    if(isset(UsuariController::$usuaris[$usuari->id])){
+                                        $userConn = UsuariController::$usuaris[$usuari->id];
+                                        $userConn->send(json_encode([
+                                            "method" => "accio",
+                                            "data" => [
+                                                "from" => $okupa->pais->nom,
+                                                "to" => $okupa2->pais->nom,
+                                                "tropas" => $data->tropas,
+                                            ]
+                                        ]));
+            
+                                    }
+                                }
+                            }else{
+                                WebsocketManager::error($from,"No tens tropes suficients per recolocar.");
+                            }
+                        }else{
+                            WebsocketManager::error($from,"No pots recolocar tropes a aquest territori.");
+                        }
+                    }else{
+                        WebsocketManager::error($from,"No pots recolocar tropes utilitzant aquest territori.");
+                    }
+                    break;
         }
     }
 
