@@ -509,7 +509,9 @@ class GameManager
                                             "to" => $okupa2->pais->nom,
                                             "atacTropas" => $pAtack,
                                             "defTropas" => $pDef,
-                                            "conquista" => $conquista
+                                            "conquista" => $conquista,
+                                            "tropasTotalsAtac" => $okupa->pais->tropes,
+                                            "torpasTotalsDefensa" => $okupa2->pais->tropes,
                                         ]
                                     ]));
         
