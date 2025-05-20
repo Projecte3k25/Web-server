@@ -486,12 +486,12 @@ class GameManager
                         
                             $conquista = (($okupa2->tropes - $pDef) == 0);
                             if($conquista){
-                                $okupa->tropes = $data->tropas;
+                                $okupa->tropes = ($okupa->tropes - $data->tropas);
                                 $okupa2->tropes = ($data->tropas - $pAtack);
                                 $okupa2->player_id = $player->id; 
                             }else{
                                 $okupa->tropes = ($okupa->tropes - $pAtack);
-                                $okupa2->tropes = ($okupa2->tropes - $dDef);
+                                $okupa2->tropes = ($okupa2->tropes - $pDef);
                             }
                             $okupa->save();
                             $okupa2->save();
