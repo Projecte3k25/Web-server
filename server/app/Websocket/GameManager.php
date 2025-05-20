@@ -484,14 +484,13 @@ class GameManager
                                 }
                             }
                         
-                            $okupa2->tropes - $pDef;
-                            $conquista = ($okupa2->tropes == 0);
+                            $conquista = (($okupa2->tropes - $pDef) == 0);
                             if($conquista){
                                 $okupa->tropes = $data->tropas;
-                                $okupa2->tropes = ($data->tropas - $dAtack);
+                                $okupa2->tropes = ($data->tropas - $pAtack);
                                 $okupa2->player_id = $player->id; 
                             }else{
-                                $okupa->tropes = ($okupa->tropes - $dAtack);
+                                $okupa->tropes = ($okupa->tropes - $pAtack);
                                 $okupa2->tropes = ($okupa2->tropes - $dDef);
                             }
                             $okupa->save();
