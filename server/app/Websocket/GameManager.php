@@ -10,6 +10,7 @@ use App\Models\Jugador;
 use App\Models\Pais;
 use App\Models\Okupa;
 use App\Models\Partida;
+use App\Models\Carta;
 use React\EventLoop\Loop;
 
 class GameManager
@@ -19,6 +20,8 @@ class GameManager
     public $maps = [];
     public $loading = [];
     public $timeManager;
+    public $cartes = [];
+    public $cardsToRedem = [];
 
     public function __construct(WebsocketManager $websocket_manager){
         $this->timeManager = Loop::get();
@@ -51,6 +54,11 @@ class GameManager
             return;
         }
         
+        $nums = range(1, count(Carta::all()));
+        $nums[] = 1;
+        shuffle($nums);
+        $this->cartes[$game->id] = $nums;
+
         $nums = range(1, count($jugadors));
         $users = [];
         foreach ($jugadors as $jugador) {
@@ -117,18 +125,22 @@ class GameManager
             }
         }
         if(count($this->loading[$game->id]) == 0){
-            foreach ($jugadors as $jugador) {
-                $usuari = $jugador->usuari;
-                if(isset(UsuariController::$usuaris[$usuari->id])){
-                    $userConn = UsuariController::$usuaris[$usuari->id];
-                    $userConn->send(json_encode([
-                        "method" => "allLoaded",
-                        "data" => [],
-                    ]));
+            $this->timeManager->addTimer(2, function () use ($jugadors, $from,$game,$data) {
+                foreach ($jugadors as $jugador) {
+                    $usuari = $jugador->usuari;
+                    if(isset(UsuariController::$usuaris[$usuari->id])){
+                        $userConn = UsuariController::$usuaris[$usuari->id];
+                        $userConn->send(json_encode([
+                            "method" => "allLoaded",
+                            "data" => [],
+                        ]));
+                    }
                 }
-            }
-            unset($this->loading[$game->id]);
-            $this->canviFase($from,$data);
+                unset($this->loading[$game->id]);
+                $this->canviFase($from,$data);
+            });
+
+            
         }
     }
 
@@ -153,6 +165,15 @@ class GameManager
             $this->canviFase($from,$data);
         }
         
+    }
+
+    public function nextTorn(Partida $game){
+        $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+        $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
+        while(count($jugador->okupes) == 0 && $game->estat_torn != 1 || $game->estat_torn != 0){
+            $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
+        }
+        $game->save();
     }
 
     public function canviFase(ConnectionInterface $from, $data) {
@@ -189,26 +210,26 @@ class GameManager
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 60);
                 break;
             case 4;
                 $game->estat_torn = 5;
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 60);
                 break;
             case 5;
                 $game->estat_torn = 6;
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 60);
                 break;
             case 6;
                 $game->estat_torn = 4;
-                $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
                 $game->save();
+                $this->nextTorn($game);
                 $game->refresh();
                 $this->eventsFase($game);
                 $this->enviarCanviFase($game, 10);
@@ -290,6 +311,17 @@ class GameManager
                 $tropas += floor(count($player->okupes) / 3);
                 $player->tropas += $tropas;
                 $player->save();
+                break;
+            case 5;
+                if(isset($this->cardsToRedem[$player->id])){
+                    unset($this->cardsToRedem[$player->id]);
+                    if(isset($this->cartes[$game->id][0])){
+                        $carta = $this->cartes[$game->id][0];
+                        unset($this->cartes[$game->id][0]);
+                        $this->cartes[$game->id] = array_values($this->cartes[$game->id]);
+                        $player->cartes()->attach($carta);
+                    }
+                }
                 break;
         }
         $game->save();
@@ -489,6 +521,7 @@ class GameManager
                                 $okupa->tropes = ($okupa->tropes - $data->tropas);
                                 $okupa2->tropes = ($data->tropas - $pAtack);
                                 $okupa2->player_id = $player->id; 
+                                $this->cardsToRedem[$player->id] = true;
                             }else{
                                 $okupa->tropes = ($okupa->tropes - $pAtack);
                                 $okupa2->tropes = ($okupa2->tropes - $pDef);
@@ -510,8 +543,8 @@ class GameManager
                                             "atacTropas" => $pAtack,
                                             "defTropas" => $pDef,
                                             "conquista" => $conquista,
-                                            "tropasTotalsAtac" => $okupa->pais->tropes,
-                                            "torpasTotalsDefensa" => $okupa2->pais->tropes,
+                                            "tropasTotalsAtac" => $okupa->tropes,
+                                            "torpasTotalsDefensa" => $okupa2->tropes,
                                         ]
                                     ]));
         
