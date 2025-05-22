@@ -125,22 +125,21 @@ class GameManager
             }
         }
         if(count($this->loading[$game->id]) == 0){
-            $this->timeManager->addTimer(2, function () use ($jugadors, $from,$game,$data) {
-                foreach ($jugadors as $jugador) {
-                    $usuari = $jugador->usuari;
-                    if(isset(UsuariController::$usuaris[$usuari->id])){
-                        $userConn = UsuariController::$usuaris[$usuari->id];
-                        $userConn->send(json_encode([
-                            "method" => "allLoaded",
-                            "data" => [],
-                        ]));
-                    }
+            foreach ($jugadors as $jugador) {
+                $usuari = $jugador->usuari;
+                if(isset(UsuariController::$usuaris[$usuari->id])){
+                    $userConn = UsuariController::$usuaris[$usuari->id];
+                    $userConn->send(json_encode([
+                        "method" => "allLoaded",
+                        "data" => [],
+                    ]));
                 }
+            }
+            if(isset($this->loading[$game->id])){
                 unset($this->loading[$game->id]);
-                $this->canviFase($from,$data);
-            });
-
+            }
             
+            $this->canviFase($from,$data);
         }
     }
 
@@ -168,10 +167,12 @@ class GameManager
     }
 
     public function nextTorn(Partida $game){
+        $game->refresh();
         $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
         $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
-        while(count($jugador->okupes) == 0 && $game->estat_torn != 1 || $game->estat_torn != 0){
+        while(count($jugador->okupes) == 0 && ($game->estat_torn != 1 && $game->estat_torn != 0)){
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
+            $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
         }
         $game->save();
     }
@@ -319,7 +320,18 @@ class GameManager
                         $carta = $this->cartes[$game->id][0];
                         unset($this->cartes[$game->id][0]);
                         $this->cartes[$game->id] = array_values($this->cartes[$game->id]);
+                        $newCarta = Carta::find($carta);
                         $player->cartes()->attach($carta);
+                        if(isset(UsuariController::$usuaris[$player->usuari->id])){
+                            UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
+                                "method" => "robaCarta",
+                                "data" => [
+                                    "nom" =>  $newCarta->pais->nom,
+                                    "tipus" => $newCarta->tipusCarta->nom,
+                                ]
+                            ]));
+                        }
+
                     }
                 }
                 break;
