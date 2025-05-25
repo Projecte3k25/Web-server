@@ -59,27 +59,42 @@ class PartidaController extends Controller
 
     public static function createPartida(ConnectionInterface $from, $data){
         $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $nom = trim($data->nom);
+        $nom = "";
         $password = "";
-        if(isset($data->password)){
-            $password = trim($data->password);
-        }
-        $max_player = $data->max_players;
+        $max_player = 4;
 
-        if(strlen($nom) < 3){
-            WebsocketManager::error($from, "El nom de la partida ha de tenir com a minim 3 caracters.");
-        }else if($max_player < 2 || $max_player > 6){
-            WebsocketManager::error($from, "El numero de jugadors maxim ha de ser entre 2 a 6.");
-        }else{
-            $partida = Partida::create(["nom"=>$nom,"token"=> $password != "" ? md5($password) : "","max_players"=>$max_player,"admin_id" => $userId,"estat_torn" => 8]);
-            $newData = new \stdClass;
-            $newData->partida = $partida->id;
-            $newData->password = $password;
-            PartidaController::joinPartida($from, $newData);
-            foreach (UsuariController::$usuaris as $conn) {
-                PartidaController::getPartidas($conn, "");
-            }
-        } 
+        switch($data->tipus){
+            case "Custom":
+                $nom = trim($data->nom);
+                $password = "";
+                if(isset($data->password)){
+                    $password = trim($data->password);
+                }
+                $max_player = $data->max_players;
+                if(strlen($nom) < 3){
+                    WebsocketManager::error($from, "El nom de la partida ha de tenir com a minim 3 caracters.");
+                    return;
+                }else if($max_player < 2 || $max_player > 6){
+                    WebsocketManager::error($from, "El numero de jugadors maxim ha de ser entre 2 a 6.");
+                    return;
+                }
+                break;
+            case "Ranked":
+                $nom = "Ranked";
+            case "Rapida":
+                $nom = "Rapida";
+        }
+        $partida = Partida::create(["nom"=>$nom,"token"=> $password != "" ? md5($password) : "","max_players"=>$max_player,"admin_id" => $userId,"estat_torn" => 8, "tipus" => $data->tipus]);
+        if($partida->tipus != "Custom") {
+            $partida->nom .= " ".$partida->id; 
+        }
+        $newData = new \stdClass;
+        $newData->partida = $partida->id;
+        $newData->password = $password;
+        PartidaController::joinPartida($from, $newData);
+        foreach (UsuariController::$usuaris as $conn) {
+            PartidaController::getPartidas($conn, "");
+        }
     }
 
     public static function updatePartida(ConnectionInterface $from, $data){
@@ -90,10 +105,11 @@ class PartidaController extends Controller
         $nom = trim($data->nom);
         $password = trim($data->password);
         $max_player = $data->max_players;
-
-        if($game->admin_id != $userId){
+        if($game->tipus != "Custom"){
+            WebsocketManager::error($from, "No es pot modificar aquest tipus de partida.");
+        }else if($game->admin_id != $userId){
             WebsocketManager::error($from, "No tens permis per modificar la partida.");
-        }if(strlen($nom) < 3){
+        }else if(strlen($nom) < 3){
             WebsocketManager::error($from, "El nom de la partida ha de tenir com a minim 3 caracters.");
         }else if($max_player < 2 || $max_player > 6){
             WebsocketManager::error($from, "El numero de jugadors maxim ha de ser entre 2 a 6.");

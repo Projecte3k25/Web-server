@@ -16,7 +16,7 @@ class WebsocketManager
     public $handler;
 
     public WebsocketServer $websocket;
-    public GameManager $gameManager;
+    public static GameManager $gameManager;
     public $playerlist;
 
     public function __construct(WebsocketServer $server){

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->foreignId('admin_id')->nullable()->constrained('usuaris');
             $table->foreignId('torn_player')->nullable();
             $table->foreignId('estat_torn')->nullable()->constrained('estats');
+            $table->string('tipus')->default('Custom');
             $table->timestamps();
         });
     }

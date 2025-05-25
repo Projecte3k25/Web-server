@@ -1,6 +1,8 @@
 <?php
     
 namespace App\Websocket;
+
+use App\Http\Controllers\BotController;
 use Ratchet\ConnectionInterface;
 use App\Http\Controllers\JugadorController;
 use App\Http\Controllers\UsuariController;
@@ -35,6 +37,7 @@ class GameManager
                 $this->maps["world"][$pais->nom][] = $frontera->nom;
             }
         }
+        $this->timeManager->run();
         echo "Mapas: \n".json_encode($this->maps, JSON_PRETTY_PRINT);
     }   
 
@@ -125,21 +128,22 @@ class GameManager
             }
         }
         if(count($this->loading[$game->id]) == 0){
-            foreach ($jugadors as $jugador) {
-                $usuari = $jugador->usuari;
-                if(isset(UsuariController::$usuaris[$usuari->id])){
-                    $userConn = UsuariController::$usuaris[$usuari->id];
-                    $userConn->send(json_encode([
-                        "method" => "allLoaded",
-                        "data" => [],
-                    ]));
+            $this->timeManager->addTimer(2.0, function() use ($jugadors, $game, $from, $data) {
+                foreach ($jugadors as $jugador) {
+                    $usuari = $jugador->usuari;
+                    if(isset(UsuariController::$usuaris[$usuari->id])){
+                        $userConn = UsuariController::$usuaris[$usuari->id];
+                        $userConn->send(json_encode([
+                            "method" => "allLoaded",
+                            "data" => [],
+                        ]));
+                    }
                 }
-            }
-            if(isset($this->loading[$game->id])){
-                unset($this->loading[$game->id]);
-            }
-            
-            $this->canviFase($from,$data);
+                if(isset($this->loading[$game->id])){
+                    unset($this->loading[$game->id]);
+                }
+                $this->canviFase($from,$data);
+            });
         }
     }
 
@@ -163,7 +167,32 @@ class GameManager
         if($game->estat_torn >= 4 && $game->estat_torn < 7){
             $this->canviFase($from,$data);
         }
+    }
+
+    public function skipFaseJugador(Jugador $player){
+        $game = $player->partida;
+
+        if($game->estat_torn < 4){
+            BotController::accio($player);
+        }else{
+            foreach ($game->jugadors as $jugador) {
+                $usuari = $jugador->usuari;
+                if(isset(UsuariController::$usuaris[$usuari->id])){
+                    $userConn = UsuariController::$usuaris[$usuari->id];
+                    $userConn->send(json_encode([
+                        "method" => "finalFase",
+                        "data" => []
+                    ]));
+                }
+            }
+
+            if($game->estat_torn >= 4 && $game->estat_torn < 7){
+                $this->canviFaseJugador($player);
+            }
+        }
+
         
+
     }
 
     public function nextTorn(Partida $game){
@@ -177,12 +206,8 @@ class GameManager
         $game->save();
     }
 
-    public function canviFase(ConnectionInterface $from, $data) {
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+    public function canviFaseJugador(Jugador $player) {
         $game = $player->partida;
-        
         switch($game->estat_torn){
             case 1;
                 // Temp
@@ -197,6 +222,7 @@ class GameManager
                 $game->save();
                 $game->refresh();
                 $this->enviarCanviFase($game, 10);
+
                 break;
             case 2;
                 $game->estat_torn = 3;
@@ -233,10 +259,18 @@ class GameManager
                 $this->nextTorn($game);
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 60);
                 break;
         }
         
+    }
+    
+
+    public function canviFase(ConnectionInterface $from, $data) {
+        $userId = UsuariController::$usuaris_ids[$from->resourceId];
+        $gameId = JugadorController::$partida_jugador[$userId];
+        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $this->canviFaseJugador($player);
     }
 
     public function enviarCanviFase(Partida $game, $time) {
@@ -279,6 +313,14 @@ class GameManager
                 ]));
             }
         }
+
+        if(isset(UsuariController::$usuaris_ids[$jugador->resourceId]) && $game->id == JugadorController::$partida_jugador[$jugador->usuari->id]){
+            $this->timeManager->addTimer($time,function () use ($jugador) {
+                $this->skipFaseJugador($jugador);
+            });
+        }else{
+            BotController::accio($jugador);
+        }
     }
 
     public function bonusContinent(Jugador $jugador){
@@ -313,7 +355,7 @@ class GameManager
                 $player->tropas += $tropas;
                 $player->save();
                 break;
-            case 5;
+            case 6;
                 if(isset($this->cardsToRedem[$player->id])){
                     unset($this->cardsToRedem[$player->id]);
                     if(isset($this->cartes[$game->id][0])){
@@ -573,51 +615,50 @@ class GameManager
                 }
                 break;
             case 6:
-                case 5:
-                    if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
-                        if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] == $player->skfNumero){
-                            if($data->tropas <= 0){
-                                WebsocketManager::error($from,"Has de seleccionar utlitzant una o més tropes per recolocar.");
-                                return;
-                            }
-                            $territori = Pais::firstWhere("nom",$data->from);
-                            $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
-                            $territori = Pais::firstWhere("nom",$data->to);
-                            $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
-    
-                            if($okupa->tropes > $data->tropas){
-                                
-                                $okupa->tropes = ($okupa->tropes - $data->tropas);
-                                $okupa2->tropes = ($okupa2->tropes + $data->tropas);
-                                
-                                $okupa->save();
-                                $okupa2->save();
-    
-                                foreach ($jugadors as $jugador2) {
-                                    $usuari = $jugador2->usuari;
-                                    if(isset(UsuariController::$usuaris[$usuari->id])){
-                                        $userConn = UsuariController::$usuaris[$usuari->id];
-                                        $userConn->send(json_encode([
-                                            "method" => "accio",
-                                            "data" => [
-                                                "from" => $okupa->pais->nom,
-                                                "to" => $okupa2->pais->nom,
-                                                "tropas" => $data->tropas,
-                                            ]
-                                        ]));
-            
-                                    }
+                if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
+                    if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] == $player->skfNumero){
+                        if($data->tropas <= 0){
+                            WebsocketManager::error($from,"Has de seleccionar utlitzant una o més tropes per recolocar.");
+                            return;
+                        }
+                        $territori = Pais::firstWhere("nom",$data->from);
+                        $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+                        $territori = Pais::firstWhere("nom",$data->to);
+                        $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
+
+                        if($okupa->tropes > $data->tropas){
+                            
+                            $okupa->tropes = ($okupa->tropes - $data->tropas);
+                            $okupa2->tropes = ($okupa2->tropes + $data->tropas);
+                            
+                            $okupa->save();
+                            $okupa2->save();
+
+                            foreach ($jugadors as $jugador2) {
+                                $usuari = $jugador2->usuari;
+                                if(isset(UsuariController::$usuaris[$usuari->id])){
+                                    $userConn = UsuariController::$usuaris[$usuari->id];
+                                    $userConn->send(json_encode([
+                                        "method" => "accio",
+                                        "data" => [
+                                            "from" => $okupa->pais->nom,
+                                            "to" => $okupa2->pais->nom,
+                                            "tropas" => $data->tropas,
+                                        ]
+                                    ]));
+        
                                 }
-                            }else{
-                                WebsocketManager::error($from,"No tens tropes suficients per recolocar.");
                             }
                         }else{
-                            WebsocketManager::error($from,"No pots recolocar tropes a aquest territori.");
+                            WebsocketManager::error($from,"No tens tropes suficients per recolocar.");
                         }
                     }else{
-                        WebsocketManager::error($from,"No pots recolocar tropes utilitzant aquest territori.");
+                        WebsocketManager::error($from,"No pots recolocar tropes a aquest territori.");
                     }
-                    break;
+                }else{
+                    WebsocketManager::error($from,"No pots recolocar tropes utilitzant aquest territori.");
+                }
+                break;
         }
     }
 
