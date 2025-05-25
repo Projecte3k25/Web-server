@@ -11,7 +11,7 @@ class Partida extends Model
 
     
     protected $fillable = [
-        'date', 'nom', 'token', 'max_players', 'admin_id', 'torn_player_id', 'estat_torn',
+        'date', 'nom', 'token', 'max_players', 'admin_id', 'torn_player_id', 'estat_torn', 'tipus'
     ];
 
     public function admin()
