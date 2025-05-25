@@ -21,7 +21,7 @@ class WebsocketManager
 
     public function __construct(WebsocketServer $server){
         $this->websocket = $server;
-        $this->gameManager = new GameManager($this);
+        $this::$gameManager = new GameManager($this);
 
         $this->handler = [
             "getPartidas" =>  function (ConnectionInterface $from, $data) {PartidaController::getPartidas($from, $data);},
@@ -53,10 +53,10 @@ class WebsocketManager
             
             "profile" => function (ConnectionInterface $from, $data) {UsuariController::profile($from, $data);},
 
-            "startPartida" =>  function (ConnectionInterface $from, $data) {$this->gameManager->startPartida($from, $data);},
-            "loaded" =>  function (ConnectionInterface $from, $data) {$this->gameManager->loaded($from, $data);},
-            "accio" =>  function (ConnectionInterface $from, $data) {$this->gameManager->accio($from, $data);},
-            "skipFase" => function (ConnectionInterface $from, $data) {$this->gameManager->skipFase($from, $data);},
+            "startPartida" =>  function (ConnectionInterface $from, $data) {$this::$gameManager->startPartida($from, $data);},
+            "loaded" =>  function (ConnectionInterface $from, $data) {$this::$gameManager->loaded($from, $data);},
+            "accio" =>  function (ConnectionInterface $from, $data) {$this::$gameManager->accio($from, $data);},
+            "skipFase" => function (ConnectionInterface $from, $data) {$this::$gameManager->skipFase($from, $data);},
         ];  
     }
 
