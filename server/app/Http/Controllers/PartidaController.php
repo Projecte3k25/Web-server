@@ -81,12 +81,15 @@ class PartidaController extends Controller
                 break;
             case "Ranked":
                 $nom = "Ranked";
+                break;
             case "Rapida":
                 $nom = "Rapida";
+                break;
         }
         $partida = Partida::create(["nom"=>$nom,"token"=> $password != "" ? md5($password) : "","max_players"=>$max_player,"admin_id" => $userId,"estat_torn" => 8, "tipus" => $data->tipus]);
         if($partida->tipus != "Custom") {
             $partida->nom .= " ".$partida->id; 
+            $partida->save();
         }
         $newData = new \stdClass;
         $newData->partida = $partida->id;
