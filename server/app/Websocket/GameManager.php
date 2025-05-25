@@ -37,6 +37,9 @@ class GameManager
                 $this->maps["world"][$pais->nom][] = $frontera->nom;
             }
         }
+        $this->timeManager->addPeriodicTimer(1, function() {
+            
+        });
         $this->timeManager->run();
         echo "Mapas: \n".json_encode($this->maps, JSON_PRETTY_PRINT);
     }   
