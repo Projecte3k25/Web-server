@@ -14,10 +14,11 @@ class WebsocketServer implements MessageComponentInterface
     protected $websocketmanager;
 
 
-    public function __construct()
+    public function __construct($loop)
     {
         $this->clients = new \SplObjectStorage;
         $this->websocketmanager = new WebsocketManager($this);
+        WebsocketManager::$gameManager->timeManager = $loop;
     }
 
     public function onOpen(ConnectionInterface $conn)

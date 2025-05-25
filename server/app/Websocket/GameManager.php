@@ -26,7 +26,6 @@ class GameManager
     public $cardsToRedem = [];
 
     public function __construct(WebsocketManager $websocket_manager){
-        $this->timeManager = Loop::get();
         $this->websocket_manager = $websocket_manager;
         $this->maps["world"] = [];
         $paisos = Pais::all();
@@ -37,10 +36,6 @@ class GameManager
                 $this->maps["world"][$pais->nom][] = $frontera->nom;
             }
         }
-        $this->timeManager->addPeriodicTimer(1, function() {
-            
-        });
-        $this->timeManager->run();
         echo "Mapas: \n".json_encode($this->maps, JSON_PRETTY_PRINT);
     }   
 

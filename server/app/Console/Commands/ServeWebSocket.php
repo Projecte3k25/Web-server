@@ -7,6 +7,8 @@ use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 use App\Websocket\WebsocketServer;
+use React\EventLoop\Loop;
+use React\Socket\SocketServer;
 
 
 class ServeWebSocket extends Command
@@ -32,12 +34,15 @@ class ServeWebSocket extends Command
      */
     public function handle()
     {
-        $server = IoServer::factory(
-            new HttpServer(
-                new WsServer(
-                    new WebsocketServer()
-                )
-            ), 8080, '0.0.0.0');
-        $server->run();
+        $loop = Loop::get();
+        $loop->addPeriodicTimer(1, function() {});
+
+        $websocket = new WsServer(new WebsocketServer($loop));
+
+        $http = new HttpServer($websocket);
+
+        $socket = new SocketServer('0.0.0.0:8080');
+
+        $loop->run();
     }
 }
