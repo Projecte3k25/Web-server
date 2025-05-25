@@ -2,14 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Websocket\WebsocketManager;
 use Illuminate\Console\Command;
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 use App\Websocket\WebsocketServer;
 use React\EventLoop\Loop;
-use React\Socket\SocketServer;
-
 
 class ServeWebSocket extends Command
 {
@@ -34,21 +33,16 @@ class ServeWebSocket extends Command
      */
     public function handle()
     {
-        $loop = Loop::get();
-        $loop->addPeriodicTimer(1, function() {});
-
+        $websocket = new WsServer(new WebsocketServer());
 
         $server = IoServer::factory(
-            new HttpServer(
-                new WsServer(
-                    new WebsocketServer($loop)
-                )
-            ), 8080, '0.0.0.0');
-        
-        $loop->addTimer(1, function () use ($server) {
-            $server->run();
-        });
-        
-        $loop->run();
+            new HttpServer($websocket),
+            8080,
+            '0.0.0.0'
+        );
+
+        WebsocketManager::$gameManager->timeManager = $server->loop;
+
+        $server->run();
     }
 }

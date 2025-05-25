@@ -87,7 +87,7 @@ class GameManager
             $usuari = $jugador->usuari;
             if($usuari->id != 0){
                 $userConn = UsuariController::$usuaris[$usuari->id];
-                $this->loading[$game->id][$userId] = 0;
+                $this->loading[$game->id][$userId] = 1;
                 $userConn->send(json_encode([
                     "method" => "startPartida",
                     "data" => [
@@ -126,22 +126,20 @@ class GameManager
             }
         }
         if(count($this->loading[$game->id]) == 0){
-            $this->timeManager->addTimer(2.0, function() use ($jugadors, $game, $from, $data) {
-                foreach ($jugadors as $jugador) {
-                    $usuari = $jugador->usuari;
-                    if(isset(UsuariController::$usuaris[$usuari->id])){
-                        $userConn = UsuariController::$usuaris[$usuari->id];
-                        $userConn->send(json_encode([
-                            "method" => "allLoaded",
-                            "data" => [],
-                        ]));
-                    }
+            foreach ($jugadors as $jugador) {
+                $usuari = $jugador->usuari;
+                if(isset(UsuariController::$usuaris[$usuari->id])){
+                    $userConn = UsuariController::$usuaris[$usuari->id];
+                    $userConn->send(json_encode([
+                        "method" => "allLoaded",
+                        "data" => [],
+                    ]));
                 }
-                if(isset($this->loading[$game->id])){
-                    unset($this->loading[$game->id]);
-                }
-                $this->canviFase($from,$data);
-            });
+            }
+            if(isset($this->loading[$game->id])){
+                unset($this->loading[$game->id]);
+            }
+            $this->canviFase($from,$data);
         }
     }
 
@@ -208,18 +206,11 @@ class GameManager
         $game = $player->partida;
         switch($game->estat_torn){
             case 1;
-                // Temp
-                $torn = 0;
-                
-                foreach (Pais::all() as $pais) {
-                    Okupa::create(["pais_id" => $pais->id, "player_id" => $game->jugadors[$torn]->id, "tropes" => 1]);
-                    $torn = (($torn + 1) % count($game->jugadors));
-                }
-                $game->estat_torn = 4;
+                $game->estat_torn = 2;
                 $game->torn_player = 1;
                 $game->save();
                 $game->refresh();
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 1);
 
                 break;
             case 2;
@@ -227,7 +218,7 @@ class GameManager
                 $game->torn_player = 1;
                 $game->save();
                 $game->refresh();
-                $this->enviarCanviFase($game, 10);
+                $this->enviarCanviFase($game, 1);
                 break;
             case 3;
                 $game->estat_torn = 4;
@@ -312,13 +303,10 @@ class GameManager
             }
         }
 
-        if(isset(UsuariController::$usuaris_ids[$jugador->resourceId]) && $game->id == JugadorController::$partida_jugador[$jugador->usuari->id]){
-            $this->timeManager->addTimer($time,function () use ($jugador) {
-                $this->skipFaseJugador($jugador);
-            });
-        }else{
-            BotController::accio($jugador);
-        }
+        $this->timeManager->addTimer($time,function () use ($jugador) {
+            $this->skipFaseJugador($jugador);
+        });
+
     }
 
     public function bonusContinent(Jugador $jugador){
@@ -440,7 +428,7 @@ class GameManager
                     if(count($territoris) == count($this->maps["world"])){
                         $this->canviFase($from,$data);
                     }else{
-                        $this->enviarCanviFase($game, 10);
+                        $this->enviarCanviFase($game, 1);
                     }
                     
                 }else{
@@ -481,7 +469,7 @@ class GameManager
                     if($game->jugadors->sum('tropas') == 0){
                         $this->canviFase($from, $data);
                     }else{
-                        $this->enviarCanviFase($game, 10);
+                        $this->enviarCanviFase($game, 1);
                     }
                     
                 }else{

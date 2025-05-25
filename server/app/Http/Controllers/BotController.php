@@ -63,7 +63,7 @@ class BotController extends Controller
                             ];
                         }
                     }
-                    WebsocketManager::$gameManager->enviarCanviFase($game, 10);
+                    WebsocketManager::$gameManager->enviarCanviFase($game, 1);
                 }else{
                     WebsocketManager::$gameManager->canviFaseJugador($player);
                 }
@@ -102,7 +102,7 @@ class BotController extends Controller
                 if($game->jugadors->sum('tropas') == 0){
                     WebsocketManager::$gameManager->canviFaseJugador($player);
                 }else{
-                    WebsocketManager::$gameManager->enviarCanviFase($game, 10);
+                    WebsocketManager::$gameManager->enviarCanviFase($game, 1);
                 }
                 break;
             case 4;
@@ -144,14 +144,19 @@ class BotController extends Controller
 
                 foreach ($okupes as $key => $okupa) {
                     if($okupa->tropes > 1){
-                        $fronteres = $territoris[$key];
-                        foreach ($fronteres as $key => $frontera) {
-                            if($frontera->posicio != $player->skfNumero){
-                                if(($frontera->tropas - ($okupa->tropes - 1)) < -2){
-                                    $defensor = $game->jugadors()->firstWhere("skfNumero", $frontera->posicio);
-                                    $territori = Pais::firstWhere("nom",$key);
-                                    $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $defensor->id)->first();
-
+                        $fronteres = WebsocketManager::$gameManager->maps["world"][$key];
+                        foreach ($fronteres as $frontera) {
+                            
+                            $territori = $territoris[$frontera];
+                            if($territori["posicio"] != $player->skfNumero){
+                                if(($territori["tropas"] - ($okupa->tropes - 1)) < -2){
+                                    $defensor = $game->jugadors()->firstWhere("skfNumero", $territori["posicio"]);
+                                    $territori2 = Pais::firstWhere("nom",$frontera);
+                                    $okupa2 = Okupa::where("pais_id", $territori2->id)->where("player_id", $defensor->id)->first();
+                                    if($okupa2 == null){
+                                        continue;
+                                    }
+                                    echo $okupa->tropes." ".$okupa2->tropes;
                                     $tropas = rand(1, $okupa->tropes-1);
                                     $dAtack = min($tropas, 3);
                                     $dDef = min($okupa2->tropes, 2);
