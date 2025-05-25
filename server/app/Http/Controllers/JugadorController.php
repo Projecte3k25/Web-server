@@ -31,7 +31,7 @@ class JugadorController extends Controller
                 "method" => "lobby",
                 "data" => [
                     "jugadors" => $users,
-                    "partida" => DB::select("select p.id, p.date, p.nom, (p.token = '') as publica, admin_id, COUNT(j.skfPartida_id) as current_players, max_players from partidas p LEFT JOIN jugadors j ON p.id = j.skfPartida_id where p.id = ".$game->id." GROUP BY p.id, p.date, p.nom, p.token, p.max_players, p.admin_id, p.estat_torn;")[0]
+                    "partida" => DB::select("select p.id, p.date, p.nom, (p.token = '') as publica, admin_id, COUNT(j.skfPartida_id) as current_players, max_players, p.tipus from partidas p LEFT JOIN jugadors j ON p.id = j.skfPartida_id where p.id = ".$game->id." GROUP BY p.id, p.date, p.nom, p.token, p.max_players, p.admin_id, p.estat_torn, p.tipus;")[0]
                 ],
             ]
         ));
