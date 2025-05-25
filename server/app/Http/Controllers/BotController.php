@@ -16,7 +16,7 @@ class BotController extends Controller
     public static function accio(Jugador $player) {
         $game = $player->partida;
         $jugadors = $game->jugadors;
-        $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+        $player = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
 
         $territoris = [];
         foreach ($jugadors as $jugador2) {

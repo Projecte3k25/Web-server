@@ -23,6 +23,7 @@ class GameManager
     public $loading = [];
     public $timeManager;
     public $cartes = [];
+    public $timers = [];
     public $cardsToRedem = [];
 
     public function __construct(WebsocketManager $websocket_manager){
@@ -302,11 +303,14 @@ class GameManager
                 ]));
             }
         }
+        if(isset($this->timers[$game->id])){
+            $this->timeManager->cancelTimer($this->timers[$game->id]);
+        }
 
-        $this->timeManager->addTimer($time,function () use ($jugador) {
+        $timer = $this->timeManager->addTimer($time,function () use ($jugador) {
             $this->skipFaseJugador($jugador);
         });
-
+        $this->timers[$game->id] = $timer;
     }
 
     public function bonusContinent(Jugador $jugador){
