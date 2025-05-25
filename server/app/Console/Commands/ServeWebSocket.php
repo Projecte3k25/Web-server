@@ -37,12 +37,18 @@ class ServeWebSocket extends Command
         $loop = Loop::get();
         $loop->addPeriodicTimer(1, function() {});
 
-        $websocket = new WsServer(new WebsocketServer($loop));
 
-        $http = new HttpServer($websocket);
-
-        $socket = new SocketServer('0.0.0.0:8080');
-
+        $server = IoServer::factory(
+            new HttpServer(
+                new WsServer(
+                    new WebsocketServer($loop)
+                )
+            ), 8080, '0.0.0.0');
+        
+        $loop->addTimer(1, function () use ($server) {
+            $server->run();
+        });
+        
         $loop->run();
     }
 }
