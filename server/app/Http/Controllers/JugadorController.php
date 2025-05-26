@@ -14,10 +14,23 @@ class JugadorController extends Controller
 {
     public static $partida_jugador = [];
 
-    public static function lobby(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
+    public static function getJugadorByUser($conn){
+        $userId = UsuariController::$usuaris_ids[$conn->resourceId];
         $gameId = JugadorController::$partida_jugador[$userId];
         $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        return $player;
+    }
+
+    public static function jugadorEnPartida(Jugador $player, Partida $game){
+        $gameId = JugadorController::$partida_jugador[$player->usuari->id];
+        if(!isset(UsuariController::$usuaris[$player->usuari->id])){
+            return false;
+        }
+        return $gameId == $game->id;
+    }
+
+    public static function lobby(ConnectionInterface $from, $data){
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
        
         $users = [];
@@ -38,9 +51,7 @@ class JugadorController extends Controller
     }
 
     public static function chat(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
         
         $users = Usuari::whereHas('jugadors', function ($query) use ($game) {
@@ -53,7 +64,7 @@ class JugadorController extends Controller
                     [
                         "method" => "chat",
                         "data" => [
-                            "user" => $userId,
+                            "user" => $player->usuari->id,
                             "message" => $data->message
                         ]
                     ]
@@ -97,18 +108,16 @@ class JugadorController extends Controller
 
 
     public static function addBot(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
 
         $adminId = $game->admin_id;
-        if($adminId == $userId){
+        if($adminId == $player->usuari->id){
             if($game->jugadors()->count() == $game->max_players){
                 WebsocketManager::error($from, "Ja hi ha el maxim de jugadors en la partida");
                 return;
             }
-            $player = Jugador::create(["skfUser_id" => 0, "skfPartida_id"=> $gameId]);
+            $player = Jugador::create(["skfUser_id" => 0, "skfPartida_id"=> $game->id]);
             $game->refresh();
             foreach ($game->jugadors as $jugador) {
                 if(isset(UsuariController::$usuaris[$jugador->skfUser_id])){

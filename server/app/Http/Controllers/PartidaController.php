@@ -36,7 +36,6 @@ class PartidaController extends Controller
         
         WebsocketManager::removeJugadorFromPartidas($userId);
 
-        JugadorController::$partida_jugador[$userId] = $gameId;
         $player = Jugador::create(["skfUser_id" => $userId, "skfPartida_id"=> $gameId]);
         $game->refresh();
         foreach ($game->jugadors as $jugador) {
@@ -101,16 +100,14 @@ class PartidaController extends Controller
     }
 
     public static function updatePartida(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
         $nom = trim($data->nom);
         $password = trim($data->password);
         $max_player = $data->max_players;
         if($game->tipus != "Custom"){
             WebsocketManager::error($from, "No es pot modificar aquest tipus de partida.");
-        }else if($game->admin_id != $userId){
+        }else if($game->admin_id != $player->usuari->id){
             WebsocketManager::error($from, "No tens permis per modificar la partida.");
         }else if(strlen($nom) < 3){
             WebsocketManager::error($from, "El nom de la partida ha de tenir com a minim 3 caracters.");

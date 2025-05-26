@@ -41,14 +41,12 @@ class GameManager
     }   
 
     public function startPartida(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         $adminId = $game->admin_id;
-        if($adminId != $userId){
+        if($adminId != $$player->usuari->id){
             WebsocketManager::error($from,"No pots començar la partida");
             return;
         }else if(count($jugadors) < 2){
@@ -86,7 +84,7 @@ class GameManager
         $game->save();
         foreach ($game->jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if($usuari->id != 0){
+            if(JugadorController::jugadorEnPartida($jugador, $game)){
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $this->loading[$game->id][$userId] = 1;
                 $userConn->send(json_encode([
@@ -107,29 +105,27 @@ class GameManager
 
 
     public function loaded(ConnectionInterface $from, $data){
-        $userId = UsuariController::$usuaris_ids[$from->resourceId];
-        $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         foreach ($jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if(isset(UsuariController::$usuaris[$usuari->id])){
+            if(JugadorController::jugadorEnPartida($jugador, $game)){
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "loaded",
                     "data" => [
-                        "id" => $userId,
+                        "id" => $player->user->id,
                     ],
                 ]));
-                unset($this->loading[$game->id][$userId]);
+                unset($this->loading[$game->id][$player->user->id]);
             }
         }
         if(count($this->loading[$game->id]) == 0){
             foreach ($jugadors as $jugador) {
                 $usuari = $jugador->usuari;
-                if(isset(UsuariController::$usuaris[$usuari->id])){
+                if(JugadorController::jugadorEnPartida($jugador, $game)){
                     $userConn = UsuariController::$usuaris[$usuari->id];
                     $userConn->send(json_encode([
                         "method" => "allLoaded",
@@ -152,7 +148,7 @@ class GameManager
         
         foreach ($game->jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if(isset(UsuariController::$usuaris[$usuari->id])){
+            if(JugadorController::jugadorEnPartida($jugador, $game)){
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "finalFase",
@@ -174,7 +170,7 @@ class GameManager
         }else{
             foreach ($game->jugadors as $jugador) {
                 $usuari = $jugador->usuari;
-                if(isset(UsuariController::$usuaris[$usuari->id])){
+                if(JugadorController::jugadorEnPartida($jugador, $game)){
                     $userConn = UsuariController::$usuaris[$usuari->id];
                     $userConn->send(json_encode([
                         "method" => "finalFase",
@@ -287,7 +283,7 @@ class GameManager
 
         foreach ($jugadors as $jugador2) {
             $usuari = $jugador2->usuari;
-            if(isset(UsuariController::$usuaris[$usuari->id])){
+            if(JugadorController::jugadorEnPartida($jugador2, $game)){
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "canviFase",
@@ -354,7 +350,7 @@ class GameManager
                         $this->cartes[$game->id] = array_values($this->cartes[$game->id]);
                         $newCarta = Carta::find($carta);
                         $player->cartes()->attach($carta);
-                        if(isset(UsuariController::$usuaris[$player->usuari->id])){
+                        if(JugadorController::jugadorEnPartida($player, $game)){
                             UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
                                 "method" => "robaCarta",
                                 "data" => [
@@ -409,7 +405,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(isset(UsuariController::$usuaris[$usuari->id])){
+                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -454,7 +450,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(isset(UsuariController::$usuaris[$usuari->id])){
+                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -504,7 +500,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(isset(UsuariController::$usuaris[$usuari->id])){
+                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -575,7 +571,7 @@ class GameManager
 
                             foreach ($jugadors as $jugador2) {
                                 $usuari = $jugador2->usuari;
-                                if(isset(UsuariController::$usuaris[$usuari->id])){
+                                if(JugadorController::jugadorEnPartida($jugador2, $game)){
                                     $userConn = UsuariController::$usuaris[$usuari->id];
                                     $userConn->send(json_encode([
                                         "method" => "accio",
@@ -626,7 +622,7 @@ class GameManager
 
                             foreach ($jugadors as $jugador2) {
                                 $usuari = $jugador2->usuari;
-                                if(isset(UsuariController::$usuaris[$usuari->id])){
+                                if(JugadorController::jugadorEnPartida($jugador2, $game)){
                                     $userConn = UsuariController::$usuaris[$usuari->id];
                                     $userConn->send(json_encode([
                                         "method" => "accio",
@@ -651,8 +647,6 @@ class GameManager
                 break;
         }
     }
-
-    
 
 }
 
