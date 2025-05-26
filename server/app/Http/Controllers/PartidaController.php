@@ -37,6 +37,7 @@ class PartidaController extends Controller
         WebsocketManager::removeJugadorFromPartidas($userId);
 
         $player = Jugador::create(["skfUser_id" => $userId, "skfPartida_id"=> $gameId]);
+        JugadorController::$partida_jugador[$userId] = $gameId;
         $game->refresh();
         foreach ($game->jugadors as $jugador) {
             if(isset(UsuariController::$usuaris[$jugador->skfUser_id])){
