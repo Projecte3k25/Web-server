@@ -22,6 +22,9 @@ class JugadorController extends Controller
     }
 
     public static function jugadorEnPartida(Jugador $player, Partida $game){
+        if($player->id == 0 || !isset(JugadorController::$partida_jugador[$player->usuari->id])){
+            return false;
+        }
         $gameId = JugadorController::$partida_jugador[$player->usuari->id];
         if(!isset(UsuariController::$usuaris[$player->usuari->id])){
             return false;

@@ -57,6 +57,7 @@ class WebsocketManager
             "loaded" =>  function (ConnectionInterface $from, $data) {$this::$gameManager->loaded($from, $data);},
             "accio" =>  function (ConnectionInterface $from, $data) {$this::$gameManager->accio($from, $data);},
             "skipFase" => function (ConnectionInterface $from, $data) {$this::$gameManager->skipFase($from, $data);},
+            "tradeCards" => function (ConnectionInterface $from, $data) {$this::$gameManager->tradeCards($from, $data);},
         ];  
     }
 

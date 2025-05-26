@@ -13,6 +13,7 @@ use App\Models\Pais;
 use App\Models\Okupa;
 use App\Models\Partida;
 use App\Models\Carta;
+use App\Models\Usuari;
 use React\EventLoop\Loop;
 
 class GameManager
@@ -25,6 +26,17 @@ class GameManager
     public $cartes = [];
     public $timers = [];
     public $cardsToRedem = [];
+    public $deathPlayers = [];
+
+    public $eloTable = [
+        10,5,-5,-10
+    ];
+    public $tradeTable = [
+        4,6,8,10,12,15
+    ];
+    public $lastTrade = [
+
+    ];
 
     public function __construct(WebsocketManager $websocket_manager){
         $this->websocket_manager = $websocket_manager;
@@ -59,6 +71,7 @@ class GameManager
         $nums[] = 1;
         shuffle($nums);
         $this->cartes[$game->id] = $nums;
+        $this->deathPlayers[$game->id] = [];
 
         $nums = range(1, count($jugadors));
         $users = [];
@@ -184,18 +197,23 @@ class GameManager
                 $this->canviFaseJugador($player);
             }
         }
-
-        
-
     }
 
     public function nextTorn(Partida $game){
         $game->refresh();
-        $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
-        $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
-        while(count($jugador->okupes) == 0 && ($game->estat_torn != 1 && $game->estat_torn != 0)){
+        $deathsPlayers = $this->deathPlayers[$game->id];
+        $playerIds = [];
+        foreach ($deathsPlayers as $player) {
+            $playerIds[] = $player->id;
+        }
+        while(true){
+            echo "\nBlocat ".$game->torn_player;
+
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
             $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+            if (!in_array($jugador->id, $playerIds)) {
+                break;
+            }
         }
         $game->save();
     }
@@ -266,10 +284,18 @@ class GameManager
         $cartes = $jugador->cartes;
         $newCartes = [];
         foreach ($cartes as $carta) {
-            $newCartes[] = [
-                "nom" =>  $carta->pais->nom,
-                "tipus" => $carta->tipusCarta->nom,
-            ];
+            if($carta->tipus == 1){
+                $newCartes[] = [
+                    "nom" =>  "comodin",
+                    "tipus" => "comodin",
+                ];
+            }else{
+                $newCartes[] = [
+                    "nom" =>  $carta->pais->nom,
+                    "tipus" => $carta->tipusCarta->nom,
+                ];
+            }
+
         }
         $territoris = [];
         foreach ($jugadors as $jugador2) {
@@ -303,11 +329,15 @@ class GameManager
         if(isset($this->timers[$game->id])){
             $this->timeManager->cancelTimer($this->timers[$game->id]);
         }
+        if(!JugadorController::jugadorEnPartida($jugador, $game)){
+            BotController::accio($jugador);
+        }else{
+            $timer = $this->timeManager->addTimer($time,function () use ($jugador) {
+                $this->skipFaseJugador($jugador);
+            });
+            $this->timers[$game->id] = $timer;
+        }
 
-        $timer = $this->timeManager->addTimer($time,function () use ($jugador) {
-            $this->skipFaseJugador($jugador);
-        });
-        $this->timers[$game->id] = $timer;
     }
 
     public function bonusContinent(Jugador $jugador){
@@ -367,6 +397,91 @@ class GameManager
         }
         $game->save();
         $game->refresh();
+    }
+
+    private function validateTrade($cards) : bool {
+        if (count($cards) !== 3) {
+            return false;
+        }
+        $LlistatTipus = array_map(function ($card) {
+            return Pais::where('nom', $card->nom)
+                                ->with('carta')
+                                ->first()?->carta->tipus;
+        }, $cards);
+    
+        $comodins = count(array_filter($LlistatTipus, fn($tipus) => $tipus === 1));
+        $tipusSenseComodi = array_filter($LlistatTipus, fn($tipus) => $tipus != 1);
+        if ($comodins === 3) return false;
+
+        if ($comodins == 1) return true;
+
+        $tipusUnics = array_unique($tipusSenseComodi);
+
+        if ($comodins === 0) {
+            if (count($tipusUnics) === 1) return true;
+    
+            sort($tipusUnics);
+            $setValid = [2, 3, 4];
+            if ($tipusUnics === $setValid) return true;
+        }
+    
+        return false;
+    }
+
+    public function tradeCards(ConnectionInterface $from, $data){
+        if($this->validateTrade($data->cards)){
+            $player = JugadorController::getJugadorByUser($from);
+            if(!isset($this->lastTrade[$player->partida->id])){
+                $this->lastTrade[$player->partida->id] = 0;
+            }
+            $lastTrade = $this->lastTrade[$player->partida->id];
+            if($lastTrade >= 15){
+                $lastTrade = $lastTrade + 5;
+            }else{
+                foreach ($this->tradeTable as $value) {
+                    if($value < $lastTrade){
+                        $lastTrade = $value;
+                    }
+                }
+                $this->lastTrade[$player->partida->id] = $lastTrade;
+            }
+
+            $okupes = $player->okupes;
+            $territoris = [];
+            foreach($okupes as $okupe){
+                $territoris[$okupe->pais->nom] = $okupe;
+            }
+
+            $bonus = [];
+            foreach($data->cards as $cards){
+                $carta = Pais::where('nom', $cards->nom)
+                ->with('carta') 
+                ->first()?->carta;
+                $player->cartes()->detach($carta->id);
+
+                if(isset($territoris[$cards->nom])){
+                    $bonus[] = $cards->nom;
+                    $territoris[$cards->nom]->tropes += 2;
+                    $territoris[$cards->nom]->save();
+                }
+            }
+
+            $player->tropas += $lastTrade;
+            $player->save();
+
+            UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
+                "method" => "tradeCards",
+                "data" => [
+                    "tropas" => $lastTrade,
+                    "territorios" => $bonus,
+                ],
+            ]));
+
+        }else{
+            WebsocketManager::error($from, "Combinació de cartes invalides.");
+        }
+
+
     }
 
     public function accio(ConnectionInterface $from, $data) {
@@ -591,6 +706,53 @@ class GameManager
         
                                 }
                             }
+
+                            $defensor->refresh();
+                            if(count($defensor->okupes) == 0){
+                                $this->deathPlayers[$defensor->partida->id][] = $defensor;
+                                $userConn = UsuariController::$usuaris[$defensor->usuari->id];
+                                $userConn->send(json_encode([
+                                    "method" => "jugadorEliminado",
+                                    "data" => ""
+                                ]));
+                                if(count($this->deathPlayers[$defensor->partida->id]) == count($defensor->partida->jugadors) - 1){
+                                    if(isset($this->timers[$defensor->partida->id])){
+                                        $this->timeManager->cancelTimer($this->timers[$defensor->partida->id]);
+                                    }
+                                    $defensor->partida->estat_torn = 7;
+                                    $defensor->partida->save();
+                                    $this->deathPlayers[$defensor->partida->id][] = $player;
+                                    $reversed = array_values(array_reverse($this->deathPlayers[$defensor->partida->id]));
+                                    $result = [];
+                                    $ranked = $defensor->partida->tipus == "Ranked";
+                                    foreach ($reversed as $index => $player) {
+                                        $user = Usuari::find($player->usuari->id);
+                                        $user->games++;
+                                        if($index == 0){
+                                            $user->wins++;
+                                        }
+                                        $eloChange = 0;
+                                        if($ranked){
+                                            $eloChange = $this->eloTable[$key];
+                                            $user->elo += $eloChange;
+                                        }
+                                        $result[] = [
+                                            "jugador" => [
+                                                "id" => $user->id,
+                                                "nom" => $user->nom,
+                                                "avatar" => $user->avatar,
+                                                "wins" => $user->wins,
+                                                "games" => $user->games,
+                                                "elo" => $user->elo,
+                                            ],
+                                            "eloChange" => $eloChange,
+                                        ];
+                                        $user->save();
+                                    }
+                                    
+                                }
+                            }
+                            
                         }else{
                             WebsocketManager::error($from,"No tens tropes suficients per atacar.");
                         }
