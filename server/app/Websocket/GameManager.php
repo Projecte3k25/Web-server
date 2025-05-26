@@ -42,18 +42,19 @@ class GameManager
 
     public function startPartida(ConnectionInterface $from, $data){
         $player = JugadorController::getJugadorByUser($from);
+       
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         $adminId = $game->admin_id;
-        if($adminId != $$player->usuari->id){
+        if($adminId != $player->usuari->id){
             WebsocketManager::error($from,"No pots començar la partida");
             return;
         }else if(count($jugadors) < 2){
             WebsocketManager::error($from,"Necesites minim dos jugadors per començar la partida.");
             return;
         }
-        
+
         $nums = range(1, count(Carta::all()));
         $nums[] = 1;
         shuffle($nums);
@@ -78,7 +79,7 @@ class GameManager
                 "posicio" => $num
             ];
         }
-
+        
         $this->loading[$game->id] = [];
         $game->estat_torn = 1;
         $game->save();
@@ -86,7 +87,7 @@ class GameManager
             $usuari = $jugador->usuari;
             if(JugadorController::jugadorEnPartida($jugador, $game)){
                 $userConn = UsuariController::$usuaris[$usuari->id];
-                $this->loading[$game->id][$userId] = 1;
+                $this->loading[$game->id][$usuari->id] = 1;
                 $userConn->send(json_encode([
                     "method" => "startPartida",
                     "data" => [
@@ -116,10 +117,10 @@ class GameManager
                 $userConn->send(json_encode([
                     "method" => "loaded",
                     "data" => [
-                        "id" => $player->user->id,
+                        "id" => $player->usuari->id,
                     ],
                 ]));
-                unset($this->loading[$game->id][$player->user->id]);
+                unset($this->loading[$game->id][$player->usuari->id]);
             }
         }
         if(count($this->loading[$game->id]) == 0){

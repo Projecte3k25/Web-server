@@ -84,11 +84,11 @@ class JugadorController extends Controller
         
         if($adminId == $requesterId && $adminId != $userId){
             if($userId != 0){
-                WebsocketManager::removeJugadorFromPartidas($userId);
                 UsuariController::$usuaris[$userId]->send(json_encode([
                     "method" => "kickJugador",
                     "data" => "",
                 ]));
+                WebsocketManager::removeJugadorFromPartidas($userId);
             }else{
                 $player->delete();
                 foreach (UsuariController::$usuaris as $conn) {
