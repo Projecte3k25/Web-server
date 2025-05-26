@@ -39,11 +39,33 @@ class DatabaseSeeder extends Seeder
         $bot->update(["id" => 0]);
         DB::statement("ALTER TABLE usuaris AUTO_INCREMENT = 1");
 
+
         $usuaris = [
-            ["nom" => "Kevin", "login" => "kevin", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/bot.png"],
-            ["nom" => "Test", "login" => "test", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png"],
-            ["nom" => "Marc", "login" => "marc", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png"],
-            ["nom" => "Admin", "login" => "admin", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png"]
+            ["nom" => "Kevin", "login" => "kevin", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/bot.png", "wins" => 10, "games" => 15, "elo" => 100],
+            ["nom" => "Test", "login" => "test", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 5, "games" => 10, "elo" => 50],
+            ["nom" => "Marc", "login" => "marc", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 8, "games" => 14, "elo" => 80],
+            ["nom" => "Admin", "login" => "admin", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 12, "games" => 20, "elo" => 120],
+
+            ["nom" => "Laura", "login" => "laura", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 7, "games" => 10, "elo" => 70],
+            ["nom" => "Oscar", "login" => "oscar", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 6, "games" => 9, "elo" => 60],
+            ["nom" => "Julia", "login" => "julia", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 9, "games" => 12, "elo" => 90],
+            ["nom" => "Alex", "login" => "alex", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 4, "games" => 10, "elo" => 40],
+            ["nom" => "Nina", "login" => "nina", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 13, "games" => 15, "elo" => 130],
+            ["nom" => "Pol", "login" => "pol", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 5, "games" => 6, "elo" => 50],
+            ["nom" => "Sara", "login" => "sara", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 2, "games" => 5, "elo" => 20],
+            ["nom" => "David", "login" => "david", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 11, "games" => 13, "elo" => 110],
+            ["nom" => "Eva", "login" => "eva", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 3, "games" => 8, "elo" => 30],
+            ["nom" => "Roger", "login" => "roger", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 15, "games" => 20, "elo" => 150],
+            ["nom" => "Clara", "login" => "clara", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 8, "games" => 11, "elo" => 80],
+            ["nom" => "Gerard", "login" => "gerard", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 10, "games" => 13, "elo" => 100],
+            ["nom" => "Irene", "login" => "irene", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 9, "games" => 12, "elo" => 90],
+            ["nom" => "Toni", "login" => "toni", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 6, "games" => 9, "elo" => 60],
+            ["nom" => "Marta", "login" => "marta", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 14, "games" => 18, "elo" => 140],
+            ["nom" => "Joan", "login" => "joan", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 7, "games" => 9, "elo" => 70],
+            ["nom" => "Helena", "login" => "helena", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 12, "games" => 14, "elo" => 120],
+            ["nom" => "Albert", "login" => "albert", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 3, "games" => 7, "elo" => 30],
+            ["nom" => "Paula", "login" => "paula", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 1, "games" => 5, "elo" => 10],
+            ["nom" => "Arnau", "login" => "arnau", "password" => "81dc9bdb52d04dc20036dbd8313ed055", "avatar" => "/media/avatars/avatar.png", "wins" => 0, "games" => 3, "elo" => 0],
         ];
 
         foreach ($usuaris as $usuari) {
@@ -268,7 +290,7 @@ class DatabaseSeeder extends Seeder
             ['SIBERIA', 'YAKUTSK'],
             ['SIBERIA', 'IRKUTSK'],
             ['SIBERIA', 'CHINA'],
-            
+
             ['URAL', 'AFGHANISTAN'],
             ['URAL', 'UKRAINE'],
             ['URAL', 'CHINA'],
@@ -298,7 +320,7 @@ class DatabaseSeeder extends Seeder
             ['YAKUTSK', 'KAMCHATKA'],
             ['SIBERIA', 'MONGOLIA'],
             ['YAKUTSK', 'SIBERIA'],
-           
+
             ['NEW_GUINEA', 'EAST_AUSTRAL'],
             ['WEST_AUSTRALIA', 'INDONESIA'],
             ['WEST_AUSTRALIA', 'NEW_GUINEA'],
@@ -325,7 +347,7 @@ class DatabaseSeeder extends Seeder
             ['nom' => 'infanteria'],
             ['nom' => 'caballeria'],
         ]);
-        
+
         DB::table('cartas')->insert([
             ['tipus' => 1, 'pais_id' => null],
         ]);
@@ -333,11 +355,11 @@ class DatabaseSeeder extends Seeder
         $artilleriaId = DB::table('tipus_cartas')->where('nom', 'artilleria')->first()->id;
         $infanteriaId = DB::table('tipus_cartas')->where('nom', 'infanteria')->first()->id;
         $caballeriaId = DB::table('tipus_cartas')->where('nom', 'caballeria')->first()->id;
-        
-                
+
+
         $territories = DB::table('pais')->get()->keyBy('nom');
 
-        
+
         $territoryTypes = [
             // Artillería 
             'GREENLAND' => $artilleriaId,
@@ -370,7 +392,7 @@ class DatabaseSeeder extends Seeder
             'USA_WEST' => $caballeriaId,
             'WEST_AUSTRALIA' => $caballeriaId,
             'YAKUTSK' => $caballeriaId,
-            
+
             // INFANTERIA 
             'AFGHANISTAN' => $infanteriaId,
             'ARGENTINA' => $infanteriaId,
@@ -386,7 +408,7 @@ class DatabaseSeeder extends Seeder
             'SIBERIA' => $infanteriaId,
             'UKRAINE' => $infanteriaId,
             'URAL' => $infanteriaId,
-            
+
         ];
 
         // Crear las cartas para cada territorio
