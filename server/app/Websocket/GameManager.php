@@ -1,5 +1,5 @@
 <?php
-    
+
 namespace App\Websocket;
 
 use App\Http\Controllers\BotController;
@@ -29,16 +29,15 @@ class GameManager
     public $deathPlayers = [];
 
     public $eloTable = [
-        10,5,-5,-10
+        10, 5, -5, -10
     ];
     public $tradeTable = [
-        4,6,8,10,12,15
+        4, 6, 8, 10, 12, 15
     ];
-    public $lastTrade = [
+    public $lastTrade = [];
 
-    ];
-
-    public function __construct(WebsocketManager $websocket_manager){
+    public function __construct(WebsocketManager $websocket_manager)
+    {
         $this->websocket_manager = $websocket_manager;
         $this->maps["world"] = [];
         $paisos = Pais::all();
@@ -49,21 +48,22 @@ class GameManager
                 $this->maps["world"][$pais->nom][] = $frontera->nom;
             }
         }
-        echo "Mapas: \n".json_encode($this->maps, JSON_PRETTY_PRINT);
-    }   
+        echo "Mapas: \n" . json_encode($this->maps, JSON_PRETTY_PRINT);
+    }
 
-    public function startPartida(ConnectionInterface $from, $data){
+    public function startPartida(ConnectionInterface $from, $data)
+    {
         $player = JugadorController::getJugadorByUser($from);
-       
+
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         $adminId = $game->admin_id;
-        if($adminId != $player->usuari->id){
-            WebsocketManager::error($from,"No pots començar la partida");
+        if ($adminId != $player->usuari->id) {
+            WebsocketManager::error($from, "No pots començar la partida");
             return;
-        }else if(count($jugadors) < 2){
-            WebsocketManager::error($from,"Necesites minim dos jugadors per començar la partida.");
+        } else if (count($jugadors) < 2) {
+            WebsocketManager::error($from, "Necesites minim dos jugadors per començar la partida.");
             return;
         }
 
@@ -76,10 +76,10 @@ class GameManager
         $nums = range(1, count($jugadors));
         $users = [];
         foreach ($jugadors as $jugador) {
-            $user = $jugador->usuari()->first()->makeHidden(['password','login']);
-            $index = rand(0, count($nums)-1);
+            $user = $jugador->usuari()->first()->makeHidden(['password', 'login']);
+            $index = rand(0, count($nums) - 1);
             $num = $nums[$index];
-            
+
             unset($nums[$index]);
             $nums = array_values($nums);
 
@@ -92,13 +92,13 @@ class GameManager
                 "posicio" => $num
             ];
         }
-        
+
         $this->loading[$game->id] = [];
         $game->estat_torn = 1;
         $game->save();
         foreach ($game->jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if(JugadorController::jugadorEnPartida($jugador, $game)){
+            if (JugadorController::jugadorEnPartida($jugador, $game)) {
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $this->loading[$game->id][$usuari->id] = 1;
                 $userConn->send(json_encode([
@@ -118,14 +118,15 @@ class GameManager
 
 
 
-    public function loaded(ConnectionInterface $from, $data){
+    public function loaded(ConnectionInterface $from, $data)
+    {
         $player = JugadorController::getJugadorByUser($from);
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         foreach ($jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if(JugadorController::jugadorEnPartida($jugador, $game)){
+            if (JugadorController::jugadorEnPartida($jugador, $game)) {
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "loaded",
@@ -136,10 +137,10 @@ class GameManager
                 unset($this->loading[$game->id][$player->usuari->id]);
             }
         }
-        if(count($this->loading[$game->id]) == 0){
+        if (count($this->loading[$game->id]) == 0) {
             foreach ($jugadors as $jugador) {
                 $usuari = $jugador->usuari;
-                if(JugadorController::jugadorEnPartida($jugador, $game)){
+                if (JugadorController::jugadorEnPartida($jugador, $game)) {
                     $userConn = UsuariController::$usuaris[$usuari->id];
                     $userConn->send(json_encode([
                         "method" => "allLoaded",
@@ -147,22 +148,23 @@ class GameManager
                     ]));
                 }
             }
-            if(isset($this->loading[$game->id])){
+            if (isset($this->loading[$game->id])) {
                 unset($this->loading[$game->id]);
             }
-            $this->canviFase($from,$data);
+            $this->canviFase($from, $data);
         }
     }
 
-    public function skipFase(ConnectionInterface $from, $data){
+    public function skipFase(ConnectionInterface $from, $data)
+    {
         $userId = UsuariController::$usuaris_ids[$from->resourceId];
         $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = Jugador::where('skfUser_id', $userId)->where('skfPartida_id', $gameId)->first();
         $game = $player->partida;
-        
+
         foreach ($game->jugadors as $jugador) {
             $usuari = $jugador->usuari;
-            if(JugadorController::jugadorEnPartida($jugador, $game)){
+            if (JugadorController::jugadorEnPartida($jugador, $game)) {
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "finalFase",
@@ -171,20 +173,21 @@ class GameManager
             }
         }
 
-        if($game->estat_torn >= 4 && $game->estat_torn < 7){
-            $this->canviFase($from,$data);
+        if ($game->estat_torn >= 4 && $game->estat_torn < 7) {
+            $this->canviFase($from, $data);
         }
     }
 
-    public function skipFaseJugador(Jugador $player){
+    public function skipFaseJugador(Jugador $player)
+    {
         $game = $player->partida;
 
-        if($game->estat_torn < 4){
+        if ($game->estat_torn < 4) {
             BotController::accio($player);
-        }else{
+        } else {
             foreach ($game->jugadors as $jugador) {
                 $usuari = $jugador->usuari;
-                if(JugadorController::jugadorEnPartida($jugador, $game)){
+                if (JugadorController::jugadorEnPartida($jugador, $game)) {
                     $userConn = UsuariController::$usuaris[$usuari->id];
                     $userConn->send(json_encode([
                         "method" => "finalFase",
@@ -193,34 +196,47 @@ class GameManager
                 }
             }
 
-            if($game->estat_torn >= 4 && $game->estat_torn < 7){
+            if ($game->estat_torn >= 4 && $game->estat_torn < 7) {
                 $this->canviFaseJugador($player);
             }
         }
     }
 
-    public function nextTorn(Partida $game){
+    public function nextTorn(Partida $game)
+    {
         $game->refresh();
         $deathsPlayers = $this->deathPlayers[$game->id];
         $playerIds = [];
         foreach ($deathsPlayers as $player) {
             $playerIds[] = $player->id;
         }
-        while(true){
-            echo "\nBlocat ".$game->torn_player;
+
+        $i = 0;
+        while (true) {
+            echo "\nBlocat " . $game->torn_player;
 
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
             $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
             if (!in_array($jugador->id, $playerIds)) {
                 break;
             }
+            $i++;
+            if($i == $game->jugadors){
+               
+                $game->estat_torn = 7;
+                if(isset($this->timers[$game->id])){
+                    $this->timeManager->cancelTimer($this->timers[$game->id]);
+                }
+                break;
+            }
         }
         $game->save();
     }
 
-    public function canviFaseJugador(Jugador $player) {
+    public function canviFaseJugador(Jugador $player)
+    {
         $game = $player->partida;
-        switch($game->estat_torn){
+        switch ($game->estat_torn) {
             case 1;
                 $game->estat_torn = 2;
                 $game->torn_player = 1;
@@ -267,40 +283,40 @@ class GameManager
                 $this->enviarCanviFase($game, 60);
                 break;
         }
-        
     }
-    
 
-    public function canviFase(ConnectionInterface $from, $data) {
+
+    public function canviFase(ConnectionInterface $from, $data)
+    {
         $userId = UsuariController::$usuaris_ids[$from->resourceId];
         $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = Jugador::where('skfUser_id', $userId)->where('skfPartida_id', $gameId)->first();
         $this->canviFaseJugador($player);
     }
 
-    public function enviarCanviFase(Partida $game, $time) {
+    public function enviarCanviFase(Partida $game, $time)
+    {
         $jugadors = $game->jugadors;
         $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
         $cartes = $jugador->cartes;
         $newCartes = [];
         foreach ($cartes as $carta) {
-            if($carta->tipus == 1){
+            if ($carta->tipus == 1) {
                 $newCartes[] = [
                     "nom" =>  "comodin",
                     "tipus" => "comodin",
                 ];
-            }else{
+            } else {
                 $newCartes[] = [
                     "nom" =>  $carta->pais->nom,
                     "tipus" => $carta->tipusCarta->nom,
                 ];
             }
-
         }
         $territoris = [];
         foreach ($jugadors as $jugador2) {
             $okupes = $jugador2->okupes;
-            foreach($okupes as $okupe){
+            foreach ($okupes as $okupe) {
                 $territoris[$okupe->pais->nom] = [
                     "posicio" => $jugador2->skfNumero,
                     "tropas" => $okupe->tropes,
@@ -310,13 +326,13 @@ class GameManager
 
         foreach ($jugadors as $jugador2) {
             $usuari = $jugador2->usuari;
-            if(JugadorController::jugadorEnPartida($jugador2, $game)){
+            if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                 $userConn = UsuariController::$usuaris[$usuari->id];
                 $userConn->send(json_encode([
                     "method" => "canviFase",
                     "data" => [
                         "fase" => $game->estat->nom,
-                        "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password','login']),
+                        "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password', 'login']),
                         "posicio" => $game->torn_player,
                         "tropas" => $jugador->tropas,
                         "cartas" => $newCartes,
@@ -326,35 +342,35 @@ class GameManager
                 ]));
             }
         }
-        if(isset($this->timers[$game->id])){
+        if (isset($this->timers[$game->id])) {
             $this->timeManager->cancelTimer($this->timers[$game->id]);
         }
-        if(!JugadorController::jugadorEnPartida($jugador, $game)){
+        if (!JugadorController::jugadorEnPartida($jugador, $game)) {
             BotController::accio($jugador);
-        }else{
-            $timer = $this->timeManager->addTimer($time,function () use ($jugador) {
+        } else {
+            $timer = $this->timeManager->addTimer($time, function () use ($jugador) {
                 $this->skipFaseJugador($jugador);
             });
             $this->timers[$game->id] = $timer;
         }
-
     }
 
-    public function bonusContinent(Jugador $jugador){
+    public function bonusContinent(Jugador $jugador)
+    {
         $jugador->refresh();
         $continents = Continent::all();
         $territorisJugador = $jugador->okupes;
-        $territorisAgrupats = []; 
+        $territorisAgrupats = [];
         $bonus = 0;
-        foreach($territorisJugador as $okupe){
-            if(!isset($territorisAgrupats[$okupe->pais->continent->id])){
+        foreach ($territorisJugador as $okupe) {
+            if (!isset($territorisAgrupats[$okupe->pais->continent->id])) {
                 $territorisAgrupats[$okupe->pais->continent->id] = [];
             }
             $territorisAgrupats[$okupe->pais->continent->id][] = $okupe;
         }
         foreach ($continents as $continent) {
-            if(isset($territorisAgrupats[$continent->id])){
-                if(count($continent->paisos) == count($territorisAgrupats[$continent->id])){
+            if (isset($territorisAgrupats[$continent->id])) {
+                if (count($continent->paisos) == count($territorisAgrupats[$continent->id])) {
                     $bonus = $bonus + $continent->reforc_tropes;
                 }
             }
@@ -362,10 +378,11 @@ class GameManager
         return $bonus;
     }
 
-    public function eventsFase(Partida $game){
+    public function eventsFase(Partida $game)
+    {
         $player = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
-        
-        switch($game->estat_torn){
+
+        switch ($game->estat_torn) {
             case 4;
                 $tropas = $this->bonusContinent($player);
                 $tropas += floor(count($player->okupes) / 3);
@@ -373,15 +390,15 @@ class GameManager
                 $player->save();
                 break;
             case 6;
-                if(isset($this->cardsToRedem[$player->id])){
+                if (isset($this->cardsToRedem[$player->id])) {
                     unset($this->cardsToRedem[$player->id]);
-                    if(isset($this->cartes[$game->id][0])){
+                    if (isset($this->cartes[$game->id][0])) {
                         $carta = $this->cartes[$game->id][0];
                         unset($this->cartes[$game->id][0]);
                         $this->cartes[$game->id] = array_values($this->cartes[$game->id]);
                         $newCarta = Carta::find($carta);
                         $player->cartes()->attach($carta);
-                        if(JugadorController::jugadorEnPartida($player, $game)){
+                        if (JugadorController::jugadorEnPartida($player, $game)) {
                             UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
                                 "method" => "robaCarta",
                                 "data" => [
@@ -390,7 +407,6 @@ class GameManager
                                 ]
                             ]));
                         }
-
                     }
                 }
                 break;
@@ -399,18 +415,19 @@ class GameManager
         $game->refresh();
     }
 
-    private function validateTrade($cards) : bool {
+    private function validateTrade($cards): bool
+    {
         if (count($cards) !== 3) {
             return false;
         }
         $LlistatTipus = array_map(function ($card) {
             return Pais::where('nom', $card->nom)
-                                ->with('carta')
-                                ->first()?->carta->tipus;
+                ->with('carta')
+                ->first()?->carta->tipus;
         }, $cards);
-    
-        $comodins = count(array_filter($LlistatTipus, fn($tipus) => $tipus === 1));
-        $tipusSenseComodi = array_filter($LlistatTipus, fn($tipus) => $tipus != 1);
+
+        $comodins = count(array_filter($LlistatTipus, fn ($tipus) => $tipus === 1));
+        $tipusSenseComodi = array_filter($LlistatTipus, fn ($tipus) => $tipus != 1);
         if ($comodins === 3) return false;
 
         if ($comodins == 1) return true;
@@ -419,45 +436,46 @@ class GameManager
 
         if ($comodins === 0) {
             if (count($tipusUnics) === 1) return true;
-    
+
             sort($tipusUnics);
             $setValid = [2, 3, 4];
             if ($tipusUnics === $setValid) return true;
         }
-    
+
         return false;
     }
 
-    public function tradeCards(ConnectionInterface $from, $data){
-        if($this->validateTrade($data->cards)){
+    public function tradeCards(ConnectionInterface $from, $data)
+    {
+        if ($this->validateTrade($data->cards)) {
             $player = JugadorController::getJugadorByUser($from);
-            if(!isset($this->lastTrade[$player->partida->id])){
+            if (!isset($this->lastTrade[$player->partida->id])) {
                 $this->lastTrade[$player->partida->id] = 0;
             }
             $lastTrade = $this->lastTrade[$player->partida->id];
             $tropas = 0;
-            if($lastTrade >= 6){
-                $tropas = 15 + (($lastTrade-6)*5);
-            }else{
-                
+            if ($lastTrade >= 6) {
+                $tropas = 15 + (($lastTrade - 6) * 5);
+            } else {
+
                 $tropas = $this->tradeTable[$lastTrade];
             }
             $this->lastTrade[$player->partida->id] = $lastTrade + 1;
 
             $okupes = $player->okupes;
             $territoris = [];
-            foreach($okupes as $okupe){
+            foreach ($okupes as $okupe) {
                 $territoris[$okupe->pais->nom] = $okupe;
             }
 
             $bonus = [];
-            foreach($data->cards as $cards){
+            foreach ($data->cards as $cards) {
                 $carta = Pais::where('nom', $cards->nom)
-                ->with('carta') 
-                ->first()?->carta;
+                    ->with('carta')
+                    ->first()?->carta;
                 $player->cartes()->detach($carta->id);
 
-                if(isset($territoris[$cards->nom])){
+                if (isset($territoris[$cards->nom])) {
                     $bonus[] = $cards->nom;
                     $territoris[$cards->nom]->tropes += 2;
                     $territoris[$cards->nom]->save();
@@ -474,31 +492,29 @@ class GameManager
                     "territorios" => $bonus,
                 ],
             ]));
-
-        }else{
+        } else {
             WebsocketManager::error($from, "Combinació de cartes invalides.");
         }
-
-
     }
 
-    public function accio(ConnectionInterface $from, $data) {
+    public function accio(ConnectionInterface $from, $data)
+    {
         $userId = UsuariController::$usuaris_ids[$from->resourceId];
         $gameId = JugadorController::$partida_jugador[$userId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
+        $player = Jugador::where('skfUser_id', $userId)->where('skfPartida_id', $gameId)->first();
         $game = $player->partida;
         $jugadors = $game->jugadors;
         $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
 
-        if($jugador->id != $player->id){
-            WebsocketManager::error($from,"No es el teu torn.");
+        if ($jugador->id != $player->id) {
+            WebsocketManager::error($from, "No es el teu torn.");
             return;
         }
 
         $territoris = [];
         foreach ($jugadors as $jugador2) {
             $okupes = $jugador2->okupes;
-            foreach($okupes as $okupe){
+            foreach ($okupes as $okupe) {
                 $territoris[$okupe->pais->nom] = [
                     "posicio" => $jugador2->skfNumero,
                     "tropas" => $okupe->tropes,
@@ -506,11 +522,11 @@ class GameManager
             }
         }
 
-        switch($game->estat_torn){
+        switch ($game->estat_torn) {
             case 2;
-                if(!isset($territoris[$data->territori])){
+                if (!isset($territoris[$data->territori])) {
                     $game->torn_player = ($game->torn_player % count($jugadors)) + 1;
-                    $territori = Pais::firstWhere("nom",$data->territori);
+                    $territori = Pais::firstWhere("nom", $data->territori);
                     Okupa::create(["pais_id" => $territori->id, "player_id" => $player->id, "tropes" => 1]);
                     $player->tropas = $player->tropas - 1;
                     $player->save();
@@ -519,7 +535,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
+                        if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -539,20 +555,19 @@ class GameManager
                         }
                     }
 
-                    if(count($territoris) == count($this->maps["world"])){
-                        $this->canviFase($from,$data);
-                    }else{
+                    if (count($territoris) == count($this->maps["world"])) {
+                        $this->canviFase($from, $data);
+                    } else {
                         $this->enviarCanviFase($game, 1);
                     }
-                    
-                }else{
-                    WebsocketManager::error($from,"No pot colocar una tropa en aquest territori.");
+                } else {
+                    WebsocketManager::error($from, "No pot colocar una tropa en aquest territori.");
                 }
                 break;
             case 3;
-                if(isset($territoris[$data->territori]) && $territoris[$data->territori]["posicio"] == $player->skfNumero){
+                if (isset($territoris[$data->territori]) && $territoris[$data->territori]["posicio"] == $player->skfNumero) {
                     $game->torn_player = ($game->torn_player % count($jugadors)) + 1;
-                    $territori = Pais::firstWhere("nom",$data->territori);
+                    $territori = Pais::firstWhere("nom", $data->territori);
                     $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
                     $okupa->tropes = $okupa->tropes + 1;
                     $player->tropas = $player->tropas - 1;
@@ -564,7 +579,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
+                        if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -580,28 +595,27 @@ class GameManager
                         }
                     }
                     $game->refresh();
-                    if($game->jugadors->sum('tropas') == 0){
+                    if ($game->jugadors->sum('tropas') == 0) {
                         $this->canviFase($from, $data);
-                    }else{
+                    } else {
                         $this->enviarCanviFase($game, 1);
                     }
-                    
-                }else{
-                    WebsocketManager::error($from,"No pot colocar una tropa en aquest territori.");
+                } else {
+                    WebsocketManager::error($from, "No pot colocar una tropa en aquest territori.");
                 }
                 break;
 
             case 4;
-                if(isset($territoris[$data->territori]) && $territoris[$data->territori]["posicio"] == $player->skfNumero){
-                    if($data->tropas < 0){
-                        WebsocketManager::error($from,"El numero de tropes ha de ser positiu.");
+                if (isset($territoris[$data->territori]) && $territoris[$data->territori]["posicio"] == $player->skfNumero) {
+                    if ($data->tropas < 0) {
+                        WebsocketManager::error($from, "El numero de tropes ha de ser positiu.");
                         return;
-                    }else if($data->tropas > $player->tropas){
-                        WebsocketManager::error($from,"No tens tropes suficients.");
+                    } else if ($data->tropas > $player->tropas) {
+                        WebsocketManager::error($from, "No tens tropes suficients.");
                         return;
                     }
 
-                    $territori = Pais::firstWhere("nom",$data->territori);
+                    $territori = Pais::firstWhere("nom", $data->territori);
                     $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
 
                     $okupa->tropes = $okupa->tropes + $data->tropas;
@@ -614,7 +628,7 @@ class GameManager
 
                     foreach ($jugadors as $jugador2) {
                         $usuari = $jugador2->usuari;
-                        if(JugadorController::jugadorEnPartida($jugador2, $game)){
+                        if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                             $userConn = UsuariController::$usuaris[$usuari->id];
                             $userConn->send(json_encode([
                                 "method" => "accio",
@@ -624,37 +638,36 @@ class GameManager
                                     "tropas" => $data->tropas
                                 ]
                             ]));
-
                         }
                     }
                     $game->refresh();
-                }else{
-                    WebsocketManager::error($from,"No pot colocar tropes en aquest territori.");
+                } else {
+                    WebsocketManager::error($from, "No pot colocar tropes en aquest territori.");
                 }
                 break;
             case 5:
-                if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
-                    if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] != $player->skfNumero){
-                        if($data->tropas <= 0){
-                            WebsocketManager::error($from,"Has de atacar utlitzant una o més tropes.");
+                if (isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero) {
+                    if (isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] != $player->skfNumero) {
+                        if ($data->tropas <= 0) {
+                            WebsocketManager::error($from, "Has de atacar utlitzant una o més tropes.");
                             return;
                         }
                         $defensor = $game->jugadors()->firstWhere("skfNumero", $territoris[$data->to]["posicio"]);
-                        $territori = Pais::firstWhere("nom",$data->from);
+                        $territori = Pais::firstWhere("nom", $data->from);
                         $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
-                        $territori = Pais::firstWhere("nom",$data->to);
+                        $territori = Pais::firstWhere("nom", $data->to);
                         $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $defensor->id)->first();
 
-                        if($okupa->tropes > $data->tropas){
+                        if ($okupa->tropes > $data->tropas) {
                             $dAtack = min($data->tropas, 3);
                             $dDef = min($okupa2->tropes, 2);
                             $numAtack = [];
                             $numDef = [];
                             for ($i = 0; $i < $dAtack; $i++) {
-                                $numAtack[] = random_int(1, 6); 
+                                $numAtack[] = random_int(1, 6);
                             }
                             for ($i = 0; $i < $dDef; $i++) {
-                                $numDef[] = random_int(1, 6); 
+                                $numDef[] = random_int(1, 6);
                             }
 
                             rsort($numAtack);
@@ -663,20 +676,20 @@ class GameManager
                             $pAtack = 0;
                             $pDef = 0;
                             foreach ($numDef as $key => $value) {
-                                if($numAtack[$key] <= $value){
+                                if ($numAtack[$key] <= $value) {
                                     $pAtack++;
-                                }else{
+                                } else {
                                     $pDef++;
                                 }
                             }
-                        
+
                             $conquista = (($okupa2->tropes - $pDef) == 0);
-                            if($conquista){
+                            if ($conquista) {
                                 $okupa->tropes = ($okupa->tropes - $data->tropas);
                                 $okupa2->tropes = ($data->tropas - $pAtack);
-                                $okupa2->player_id = $player->id; 
+                                $okupa2->player_id = $player->id;
                                 $this->cardsToRedem[$player->id] = true;
-                            }else{
+                            } else {
                                 $okupa->tropes = ($okupa->tropes - $pAtack);
                                 $okupa2->tropes = ($okupa2->tropes - $pDef);
                             }
@@ -685,7 +698,7 @@ class GameManager
 
                             foreach ($jugadors as $jugador2) {
                                 $usuari = $jugador2->usuari;
-                                if(JugadorController::jugadorEnPartida($jugador2, $game)){
+                                if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                                     $userConn = UsuariController::$usuaris[$usuari->id];
                                     $userConn->send(json_encode([
                                         "method" => "accio",
@@ -701,20 +714,19 @@ class GameManager
                                             "torpasTotalsDefensa" => $okupa2->tropes,
                                         ]
                                     ]));
-        
                                 }
                             }
 
                             $defensor->refresh();
-                            if(count($defensor->okupes) == 0){
+                            if (count($defensor->okupes) == 0) {
                                 $this->deathPlayers[$defensor->partida->id][] = $defensor;
                                 $userConn = UsuariController::$usuaris[$defensor->usuari->id];
                                 $userConn->send(json_encode([
                                     "method" => "jugadorEliminado",
                                     "data" => ""
                                 ]));
-                                if(count($this->deathPlayers[$defensor->partida->id]) == count($defensor->partida->jugadors) - 1){
-                                    if(isset($this->timers[$defensor->partida->id])){
+                                if (count($this->deathPlayers[$defensor->partida->id]) == count($defensor->partida->jugadors) - 1) {
+                                    if (isset($this->timers[$defensor->partida->id])) {
                                         $this->timeManager->cancelTimer($this->timers[$defensor->partida->id]);
                                     }
                                     $defensor->partida->estat_torn = 7;
@@ -726,11 +738,11 @@ class GameManager
                                     foreach ($reversed as $index => $player) {
                                         $user = Usuari::find($player->usuari->id);
                                         $user->games++;
-                                        if($index == 0){
+                                        if ($index == 0) {
                                             $user->wins++;
                                         }
                                         $eloChange = 0;
-                                        if($ranked){
+                                        if ($ranked) {
                                             $eloChange = $this->eloTable[$key];
                                             $user->elo += $eloChange;
                                         }
@@ -747,43 +759,53 @@ class GameManager
                                         ];
                                         $user->save();
                                     }
-                                    
+
+
+                                    foreach ($jugadors as $jugador2) {
+                                        $usuari = $jugador2->usuari;
+                                        if (JugadorController::jugadorEnPartida($jugador2, $game)) {
+                                            $userConn = UsuariController::$usuaris[$usuari->id];
+                                            $userConn->send(json_encode([
+                                                "method" => "partidaTerminada",
+                                                "data" => $result,
+                                            ]));
+                                        }
+                                    }
                                 }
                             }
-                            
-                        }else{
-                            WebsocketManager::error($from,"No tens tropes suficients per atacar.");
+                        } else {
+                            WebsocketManager::error($from, "No tens tropes suficients per atacar.");
                         }
-                    }else{
-                        WebsocketManager::error($from,"No pots atacar a aquest territori.");
+                    } else {
+                        WebsocketManager::error($from, "No pots atacar a aquest territori.");
                     }
-                }else{
-                    WebsocketManager::error($from,"No pots atacar utilitzant aquest territori.");
+                } else {
+                    WebsocketManager::error($from, "No pots atacar utilitzant aquest territori.");
                 }
                 break;
             case 6:
-                if(isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero){
-                    if(isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] == $player->skfNumero){
-                        if($data->tropas <= 0){
-                            WebsocketManager::error($from,"Has de seleccionar utlitzant una o més tropes per recolocar.");
+                if (isset($territoris[$data->from]) && $territoris[$data->from]["posicio"] == $player->skfNumero) {
+                    if (isset($territoris[$data->to]) && $territoris[$data->to]["posicio"] == $player->skfNumero) {
+                        if ($data->tropas <= 0) {
+                            WebsocketManager::error($from, "Has de seleccionar utlitzant una o més tropes per recolocar.");
                             return;
                         }
-                        $territori = Pais::firstWhere("nom",$data->from);
+                        $territori = Pais::firstWhere("nom", $data->from);
                         $okupa = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
-                        $territori = Pais::firstWhere("nom",$data->to);
+                        $territori = Pais::firstWhere("nom", $data->to);
                         $okupa2 = Okupa::where("pais_id", $territori->id)->where("player_id", $player->id)->first();
 
-                        if($okupa->tropes > $data->tropas){
-                            
+                        if ($okupa->tropes > $data->tropas) {
+
                             $okupa->tropes = ($okupa->tropes - $data->tropas);
                             $okupa2->tropes = ($okupa2->tropes + $data->tropas);
-                            
+
                             $okupa->save();
                             $okupa2->save();
 
                             foreach ($jugadors as $jugador2) {
                                 $usuari = $jugador2->usuari;
-                                if(JugadorController::jugadorEnPartida($jugador2, $game)){
+                                if (JugadorController::jugadorEnPartida($jugador2, $game)) {
                                     $userConn = UsuariController::$usuaris[$usuari->id];
                                     $userConn->send(json_encode([
                                         "method" => "accio",
@@ -793,24 +815,18 @@ class GameManager
                                             "tropas" => $data->tropas,
                                         ]
                                     ]));
-        
                                 }
                             }
-                        }else{
-                            WebsocketManager::error($from,"No tens tropes suficients per recolocar.");
+                        } else {
+                            WebsocketManager::error($from, "No tens tropes suficients per recolocar.");
                         }
-                    }else{
-                        WebsocketManager::error($from,"No pots recolocar tropes a aquest territori.");
+                    } else {
+                        WebsocketManager::error($from, "No pots recolocar tropes a aquest territori.");
                     }
-                }else{
-                    WebsocketManager::error($from,"No pots recolocar tropes utilitzant aquest territori.");
+                } else {
+                    WebsocketManager::error($from, "No pots recolocar tropes utilitzant aquest territori.");
                 }
                 break;
         }
     }
-
 }
-
-
-
-?>
