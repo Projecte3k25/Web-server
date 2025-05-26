@@ -268,7 +268,7 @@ class DatabaseSeeder extends Seeder
             ['SIBERIA', 'YAKUTSK'],
             ['SIBERIA', 'IRKUTSK'],
             ['SIBERIA', 'CHINA'],
-            ['URAL', 'YAKUTSK'],
+            
             ['URAL', 'AFGHANISTAN'],
             ['URAL', 'UKRAINE'],
             ['URAL', 'CHINA'],
@@ -298,7 +298,7 @@ class DatabaseSeeder extends Seeder
             ['YAKUTSK', 'KAMCHATKA'],
             ['SIBERIA', 'MONGOLIA'],
             ['YAKUTSK', 'SIBERIA'],
-            ['YAKUTSK', 'URAL'],
+           
             ['NEW_GUINEA', 'EAST_AUSTRAL'],
             ['WEST_AUSTRALIA', 'INDONESIA'],
             ['WEST_AUSTRALIA', 'NEW_GUINEA'],
