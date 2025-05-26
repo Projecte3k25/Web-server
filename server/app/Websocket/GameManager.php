@@ -435,16 +435,14 @@ class GameManager
                 $this->lastTrade[$player->partida->id] = 0;
             }
             $lastTrade = $this->lastTrade[$player->partida->id];
-            if($lastTrade >= 15){
-                $lastTrade = $lastTrade + 5;
+            $tropas = 0;
+            if($lastTrade >= 6){
+                $tropas = 15 + (($lastTrade-6)*5);
             }else{
-                foreach ($this->tradeTable as $value) {
-                    if($value < $lastTrade){
-                        $lastTrade = $value;
-                    }
-                }
-                $this->lastTrade[$player->partida->id] = $lastTrade;
+                
+                $tropas = $this->tradeTable[$lastTrade];
             }
+            $this->lastTrade[$player->partida->id] = $lastTrade + 1;
 
             $okupes = $player->okupes;
             $territoris = [];
@@ -472,7 +470,7 @@ class GameManager
             UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
                 "method" => "tradeCards",
                 "data" => [
-                    "tropas" => $lastTrade,
+                    "tropas" => $tropas,
                     "territorios" => $bonus,
                 ],
             ]));
