@@ -71,7 +71,6 @@ class GameManager
         }
 
         $nums = range(1, count(Carta::all()));
-        $nums[] = 1;
         shuffle($nums);
         $this->cartes[$game->id] = $nums;
         $this->deathPlayers[$game->id] = [];
@@ -473,16 +472,23 @@ class GameManager
 
             $bonus = [];
             foreach ($data->cards as $cards) {
-                $carta = Pais::where('nom', $cards->nom)
+                if($cards->nom != "comodin"){
+                    $carta = Pais::where('nom', $cards->nom)
                     ->with('carta')
                     ->first()?->carta;
-                $player->cartes()->detach($carta->id);
-
-                if (isset($territoris[$cards->nom])) {
-                    $bonus[] = $cards->nom;
-                    $territoris[$cards->nom]->tropes += 2;
-                    $territoris[$cards->nom]->save();
+                    $player->cartes()->detach($carta->id);
+                    if (isset($territoris[$cards->nom])) {
+                        $bonus[] = $cards->nom;
+                        $territoris[$cards->nom]->tropes += 2;
+                        $territoris[$cards->nom]->save();
+                    }
+                }else{
+                    $player->cartes()->detach(1);
                 }
+                
+                
+
+ 
             }
 
             $player->tropas += $tropas;
