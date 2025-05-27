@@ -39,7 +39,7 @@ class WebsocketManager
                         if(isset(JugadorController::$partida_jugador[$decoded->id])){
                             $gameId = JugadorController::$partida_jugador[$decoded->id];
                             $game = Partida::find($gameId);
-                            if($game->estat_torn < 7){
+                            if(isset($game) && $game->estat_torn < 7){
                                 $jugadors = $game->jugadors;
                                 $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
                                 $cartes = $jugador->cartes;
