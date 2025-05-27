@@ -38,10 +38,10 @@ class ServeWithWebSocket extends Command
 
         while ($laravel->isRunning() || $websocket->isRunning()) {
             echo $websocket->getIncrementalOutput();
-            /*$out = $laravel->getIncrementalOutput();
+            $out = $laravel->getIncrementalOutput();
             if($out != ""){
                 echo "\n".$out;
-            }*/
+            }
            
             sleep(1);
         }
