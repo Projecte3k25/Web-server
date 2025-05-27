@@ -29,10 +29,18 @@ class GameManager
     public $deathPlayers = [];
 
     public $eloTable = [
-        10, 5, -5, -10
+        10,
+        5,
+        -5,
+        -10
     ];
     public $tradeTable = [
-        4, 6, 8, 10, 12, 15
+        4,
+        6,
+        8,
+        10,
+        12,
+        15
     ];
     public $lastTrade = [];
 
@@ -214,24 +222,24 @@ class GameManager
         }
         $b = 0;
         $i = 0;
+        $j = 0;
+        foreach ($game->jugadors as $jugador) {
+            if (JugadorController::jugadorEnPartida($jugador, $game)) {
+                $j++;
+            }
+            if ($jugador->usuari->id == 0) {
+                $b++;
+            }
+            echo "Jugadors en partida " . $j;
+        }
+        if ($j == 0 || ($j == 1 && $b < 0)) {
+            $game->estat_torn = 7;
+            $game->save();
+            $this->canviFaseJugador($player);
+            return;
+        }
         while (true) {
-            $j = 0;
-            foreach ($game->jugadors as $jugador) {
-                if (JugadorController::jugadorEnPartida($jugador, $game)) {
-                    $j++;
-                }
-                if($jugador->usuari->id == 0){
-                    $b++;
-                }
-                echo "Jugadors en partida ".$j;
 
-            }
-            if ($j == 0 || ($j == 1 && $b < 0)) {
-                $game->estat_torn = 7;
-                $game->save();
-                $this->canviFaseJugador($player);
-                break;
-            }
             echo "\nBlocat " . $game->torn_player . " " . $i . " " . $j;
             $i++;
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
@@ -489,8 +497,8 @@ class GameManager
                 ->first()?->carta->tipus;
         }, $cards);
 
-        $comodins = count(array_filter($LlistatTipus, fn ($tipus) => $tipus === 1));
-        $tipusSenseComodi = array_filter($LlistatTipus, fn ($tipus) => $tipus != 1);
+        $comodins = count(array_filter($LlistatTipus, fn($tipus) => $tipus === 1));
+        $tipusSenseComodi = array_filter($LlistatTipus, fn($tipus) => $tipus != 1);
         if ($comodins === 3) return false;
 
         if ($comodins == 1) return true;
