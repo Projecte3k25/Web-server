@@ -64,7 +64,6 @@ class PartidaController extends Controller
         WebsocketManager::removeJugadorFromPartidas($userId);
         if(isset(JugadorController::$partida_jugador[$userId])){
             unset(JugadorController::$partida_jugador[$userId]);
-            echo "\nRebutjat";
         }
         PartidaController::getPartidas($from,$data);
     }

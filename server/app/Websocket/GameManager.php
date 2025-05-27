@@ -230,12 +230,23 @@ class GameManager
             if ($jugador->usuari->id == 0) {
                 $b++;
             }
-            echo "Jugadors en partida " . $j;
+            echo "\nJugadors en partida " . $j;
         }
-        if ($j == 0 || ($j == 1 && $b < 0)) {
+        $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+        if ($j == 0 || ($j == 1 && $b == 0)) {
             $game->estat_torn = 7;
             $game->save();
-            $this->canviFaseJugador($player);
+            $deathPerId = [];
+            foreach ($this->deathPlayers[$game->id] as $player) {
+                $deathPerId[$player->id] = $player;
+            }
+
+            foreach ($game->jugadors as $jugador2) {
+                if ($jugador2->id != $jugador->id && !isset($deathPerId[$jugador2->id])) {
+                    $this->deathPlayers[$game->id][] = $jugador2;
+                }
+            }
+            $this->canviFaseJugador($jugador);
             return;
         }
         while (true) {

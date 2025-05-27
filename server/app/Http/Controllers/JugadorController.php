@@ -16,22 +16,22 @@ class JugadorController extends Controller
 
     public static function getJugadorByUser($conn){
         $userId = UsuariController::$usuaris_ids[$conn->resourceId];
+        if(!isset(JugadorController::$partida_jugador[$userId])){
+            return;
+        }
         $gameId = JugadorController::$partida_jugador[$userId];
         $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
         return $player;
     }
 
     public static function jugadorEnPartida(Jugador $player, Partida $game){
-        echo "\n Player id: "." ".$player->usuari->id;
         if($player->id == 0 || !isset(JugadorController::$partida_jugador[$player->usuari->id])){
             return false;
         }
-        echo "\n Patida id: "." ".$game->id;
         if(!isset(UsuariController::$usuaris[$player->usuari->id]) || !isset(JugadorController::$partida_jugador[$player->usuari->id])){
             return false;
         }
         $gameId = JugadorController::$partida_jugador[$player->usuari->id];
-        echo "\n Patida ids: ".$gameId." ".$game->id;
         return $gameId == $game->id;
     }
 
