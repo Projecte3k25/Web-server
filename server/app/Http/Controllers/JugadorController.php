@@ -88,10 +88,12 @@ class JugadorController extends Controller
         
         if($adminId == $requester->usuari->id && $adminId != $userId){
             if($userId != 0){
-                UsuariController::$usuaris[$userId]->send(json_encode([
-                    "method" => "kickJugador",
-                    "data" => "",
-                ]));
+                WebsocketManager::$gameManager->timeManager->addTimer(1, function () use ($userId) {
+                    UsuariController::$usuaris[$userId]->send(json_encode([
+                        "method" => "kickJugador",
+                        "data" => "",
+                    ]));
+                });
             }
             $player->delete();
             

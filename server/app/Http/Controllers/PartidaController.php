@@ -94,6 +94,10 @@ class PartidaController extends Controller
                 $nom = "Rapida";
                 break;
         }
+        if(strlen($nom) >= 255){
+            WebsocketManager::error($from,"El nom ha de ser menor a 255 caracters.");
+            return;
+        }
         $partida = Partida::create(["nom"=>$nom,"token"=> $password != "" ? md5($password) : "","max_players"=>$max_player,"admin_id" => $userId,"estat_torn" => 8, "tipus" => $data->tipus]);
         if($partida->tipus != "Custom") {
             $partida->nom .= " ".$partida->id; 
@@ -125,6 +129,10 @@ class PartidaController extends Controller
         }else if($max_player < $game->jugadors->count()){
             WebsocketManager::error($from, "El numero de jugadors no pot ser menor al numero de jugadors dins de la sala.");
         }else{
+            if(strlen($nom) >= 255){
+                WebsocketManager::error($from,"El nom ha de ser menor a 255 caracters.");
+                return;
+            }
             $game->nom = $nom;
             $game->token = $password != "" ? md5($password) : "";
             $game->max_players = $max_player;

@@ -215,14 +215,14 @@ class GameManager
 
         $i = 0;
         while (true) {
-            echo "\nBlocat " . $game->torn_player;
-
+            echo "\nBlocat " . $game->torn_player." ".$i;
+            $i++;
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
             $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
             if (!in_array($jugador->id, $playerIds)) {
                 break;
             }
-            $i++;
+            
             if($i == count($game->jugadors)){
                
                 $game->estat_torn = 7;
@@ -298,6 +298,7 @@ class GameManager
 
     public function enviarCanviFase(Partida $game, $time)
     {
+        $game->refresh();
         $jugadors = $game->jugadors;
         $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
         $cartes = $jugador->cartes;
@@ -404,7 +405,7 @@ class GameManager
                             UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
                                 "method" => "robaCarta",
                                 "data" => [
-                                    "nom" =>  $newCarta->pais->nom,
+                                    "nom" =>  isset($newCarta->pais) ? $newCarta->pais->nom : "comodin",
                                     "tipus" => $newCarta->tipusCarta->nom,
                                 ]
                             ]));
@@ -685,6 +686,9 @@ class GameManager
                             $pAtack = 0;
                             $pDef = 0;
                             foreach ($numDef as $key => $value) {
+                                if(!isset($numAtack[$key])){
+                                    break;
+                                }
                                 if ($numAtack[$key] <= $value) {
                                     $pAtack++;
                                 } else {
@@ -752,7 +756,7 @@ class GameManager
                                         }
                                         $eloChange = 0;
                                         if ($ranked) {
-                                            $eloChange = $this->eloTable[$key];
+                                            $eloChange = $this->eloTable[$index];
                                             $user->elo += $eloChange;
                                         }
                                         $result[] = [
