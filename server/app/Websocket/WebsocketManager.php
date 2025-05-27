@@ -35,10 +35,62 @@ class WebsocketManager
                     WebsocketManager::removeJugadorFromPartidas($decoded->id);
                     UsuariController::profile($from, $data);
                     JugadorController::getRanking($from, $data);
-                } catch (\Throwable $th) {
+                    if($data->isReconnect == true){
+                        if(isset(JugadorController::$partida_jugador[$decoded->id])){
+                            $gameId = JugadorController::$partida_jugador[$decoded->id];
+                            $game = Partida::find($gameId);
+                            if($game->estat_torn < 7){
+                                $jugadors = $game->jugadors;
+                                $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+                                $cartes = $jugador->cartes;
+                                $newCartes = [];
+                                foreach ($cartes as $carta) {
+                                    if ($carta->tipus == 1) {
+                                        $newCartes[] = [
+                                            "nom" =>  "comodin",
+                                            "tipus" => "comodin",
+                                        ];
+                                    } else {
+                                        $newCartes[] = [
+                                            "nom" =>  $carta->pais->nom,
+                                            "tipus" => $carta->tipusCarta->nom,
+                                        ];
+                                    }
+                                }
+                                $territoris = [];
+                                foreach ($jugadors as $jugador2) {
+                                    $okupes = $jugador2->okupes;
+                                    foreach ($okupes as $okupe) {
+                                        $territoris[$okupe->pais->nom] = [
+                                            "posicio" => $jugador2->skfNumero,
+                                            "tropas" => $okupe->tropes,
+                                        ];
+                                    }
+                                }
+    
+    
+                                $from->send(json_encode([
+                                    "method" => "canviFase",
+                                    "data" => [
+                                        "fase" => $game->estat->nom,
+                                        "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password', 'login']),
+                                        "posicio" => $game->torn_player,
+                                        "tropas" => $jugador->tropas,
+                                        "cartas" => $newCartes,
+                                        "temps" => 0,
+                                        "territoris" => $territoris,
+                                    ]
+                                ]));
+                     
+                            }
+                        }
+                    
+                }
+            } catch (\Throwable $th) {
                     echo "\nError amb client(".$from->resourceId."):\n".$th->getMessage();
                     $from->close();
                 }
+                        
             },
             "joinPartida" =>  function (ConnectionInterface $from, $data) {PartidaController::joinPartida($from, $data);},
             "createPartida" => function (ConnectionInterface $from, $data) {PartidaController::createPartida($from, $data);},

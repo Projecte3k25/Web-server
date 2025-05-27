@@ -224,7 +224,7 @@ class GameManager
                 break;
             }
             $i++;
-            if($i == $game->jugadors){
+            if($i == count($game->jugadors)){
                
                 $game->estat_torn = 7;
                 if(isset($this->timers[$game->id])){
@@ -485,7 +485,7 @@ class GameManager
                 }
             }
 
-            $player->tropas += $lastTrade;
+            $player->tropas += $tropas;
             $player->save();
 
             UsuariController::$usuaris[$player->usuari->id]->send(json_encode([
