@@ -86,19 +86,19 @@ class JugadorController extends Controller
         
         $adminId = $game->admin_id;
         
-        if($adminId == $requester->usuari->id && $adminId != $userId){
-            if($userId != 0){
-                WebsocketManager::$gameManager->timeManager->addTimer(1, function () use ($userId) {
-                    UsuariController::$usuaris[$userId]->send(json_encode([
-                        "method" => "kickJugador",
-                        "data" => "",
-                    ]));
-                });
+        if($adminId == $requester->skfUser_id && $adminId != $userId){
+            if($player->skfUser_id != 0){
+                $conn = UsuariController::$usuaris[$player->skfUser_id];
+                $conn->send(json_encode([
+                    "method" => "kickJugador",
+                    "data" => "",
+                ]));
             }
             $player->delete();
+            $game->refresh();
             
             foreach ($game->jugadors as $jugador) {
-                if(JugadorController::jugadorEnPartida($jugador,$game)){
+                if(isset(UsuariController::$usuaris[$jugador->skfUser_id])){
                     JugadorController::lobby(UsuariController::$usuaris[$jugador->skfUser_id], "");
                 }            
             }
