@@ -79,6 +79,10 @@ class WebsocketManager
             $partida = $jugador->partida;
             $jugador->delete();
             $partida->refresh();
+            if(isset(PartidaController::$timers[$partida->id])){
+                WebsocketManager::$gameManager->timeManager->cancelTimer(PartidaController::$timers[$partida->id]);
+                unset(PartidaController::$timers[$partida->id]);
+            }
             if($partida->admin_id == $userId){
                 WebsocketManager::transferAdminNextJugador($partida->id);
             }

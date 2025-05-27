@@ -55,11 +55,14 @@ class GameManager
     {
         $player = JugadorController::getJugadorByUser($from);
 
+        if($player == null){
+            return;
+        }
         $game = $player->partida;
         $jugadors = $game->jugadors;
 
         $adminId = $game->admin_id;
-        if ($adminId != $player->usuari->id) {
+        if ($adminId != $player->usuari->id && $game->tipus == "Custom") {
             WebsocketManager::error($from, "No pots començar la partida");
             return;
         } else if (count($jugadors) < 2) {

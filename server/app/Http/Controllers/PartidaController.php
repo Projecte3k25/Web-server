@@ -12,6 +12,8 @@ use Ratchet\ConnectionInterface;
 
 class PartidaController extends Controller
 {
+    public static $timers = [];
+
     public static function getPartidas(ConnectionInterface $from, $data){
         $from->send(json_encode([
             "method" => "getPartidas",
@@ -40,9 +42,15 @@ class PartidaController extends Controller
         JugadorController::$partida_jugador[$userId] = $gameId;
         $game->refresh();
         foreach ($game->jugadors as $jugador) {
-            if(isset(UsuariController::$usuaris[$jugador->skfUser_id])){
+            if(JugadorController::jugadorEnPartida($jugador,$game)){
                 JugadorController::lobby(UsuariController::$usuaris[$jugador->skfUser_id], "");
             }            
+        }
+        if($game->tipus != "Custom" && count($game->jugadors) == $game->max_players){
+            $timer = WebsocketManager::$gameManager->timeManager->addTimer(10, function () use ($from, $data) {
+                WebsocketManager::$gameManager->startPartida($from, $data);
+            });
+            $timers[$game->id] = $timer;
         }
         
         foreach (UsuariController::$usuaris as $conn) {

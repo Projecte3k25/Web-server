@@ -78,32 +78,32 @@ class JugadorController extends Controller
 
     
     public static function kickJugador(ConnectionInterface $from, $data){
-        $requesterId = UsuariController::$usuaris_ids[$from->resourceId];
+        $requester = JugadorController::getJugadorByUser($from);
+        $game = $requester->partida;
         $userId = $data->user;
-        $gameId = JugadorController::$partida_jugador[$requesterId];
-        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $gameId )->first();
-        $game = $player->partida;
+
+        $player = Jugador::where('skfUser_id',$userId)->where('skfPartida_id', $game->id )->first();
+        
         $adminId = $game->admin_id;
         
-        if($adminId == $requesterId && $adminId != $userId){
+        if($adminId == $requester->usuari->id && $adminId != $userId){
             if($userId != 0){
                 UsuariController::$usuaris[$userId]->send(json_encode([
                     "method" => "kickJugador",
                     "data" => "",
                 ]));
-                WebsocketManager::removeJugadorFromPartidas($userId);
-            }else{
-                $player->delete();
-                foreach (UsuariController::$usuaris as $conn) {
-                    PartidaController::getPartidas($conn, "");
-                }
             }
-            PartidaController::getPartidas($from,$data);
+            $player->delete();
+            
             foreach ($game->jugadors as $jugador) {
-                if(isset(UsuariController::$usuaris[$jugador->skfUser_id])){
+                if(JugadorController::jugadorEnPartida($jugador,$game)){
                     JugadorController::lobby(UsuariController::$usuaris[$jugador->skfUser_id], "");
                 }            
             }
+            foreach (UsuariController::$usuaris as $conn) {
+                PartidaController::getPartidas($conn, "");
+            }
+
         }else{
             WebsocketManager::error($from,"No pots expulsar aquest jugador");
         }
