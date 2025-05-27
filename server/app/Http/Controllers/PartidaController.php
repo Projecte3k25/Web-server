@@ -62,6 +62,10 @@ class PartidaController extends Controller
     public static function leavePartida(ConnectionInterface $from, $data){
         $userId = UsuariController::$usuaris_ids[$from->resourceId];
         WebsocketManager::removeJugadorFromPartidas($userId);
+        if(isset(JugadorController::$partida_jugador[$userId])){
+            unset(JugadorController::$partida_jugador[$userId]);
+            echo "\nRebutjat";
+        }
         PartidaController::getPartidas($from,$data);
     }
 

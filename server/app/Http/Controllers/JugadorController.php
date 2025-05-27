@@ -22,13 +22,16 @@ class JugadorController extends Controller
     }
 
     public static function jugadorEnPartida(Jugador $player, Partida $game){
+        echo "\n Player id: "." ".$player->usuari->id;
         if($player->id == 0 || !isset(JugadorController::$partida_jugador[$player->usuari->id])){
             return false;
         }
-        $gameId = JugadorController::$partida_jugador[$player->usuari->id];
-        if(!isset(UsuariController::$usuaris[$player->usuari->id])){
+        echo "\n Patida id: "." ".$game->id;
+        if(!isset(UsuariController::$usuaris[$player->usuari->id]) || !isset(JugadorController::$partida_jugador[$player->usuari->id])){
             return false;
         }
+        $gameId = JugadorController::$partida_jugador[$player->usuari->id];
+        echo "\n Patida ids: ".$gameId." ".$game->id;
         return $gameId == $game->id;
     }
 

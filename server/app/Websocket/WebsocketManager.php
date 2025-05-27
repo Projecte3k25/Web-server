@@ -6,10 +6,12 @@ use App\Http\Controllers\JugadorController;
 use App\Http\Controllers\UsuariController;
 use App\Http\Controllers\PartidaController;
 use App\Models\Jugador;
+use App\Models\Carta;
 use App\Models\Partida;
 use Ratchet\ConnectionInterface;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Support\Facades\DB;
 
 class WebsocketManager
 {
@@ -42,6 +44,9 @@ class WebsocketManager
                             if(isset($game) && $game->estat_torn < 7){
                                 $jugadors = $game->jugadors;
                                 $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
+                                if(!isset($jugador->cartes)){
+                                    return;
+                                }
                                 $cartes = $jugador->cartes;
                                 $newCartes = [];
                                 foreach ($cartes as $carta) {
@@ -68,19 +73,47 @@ class WebsocketManager
                                     }
                                 }
     
-    
-                                $from->send(json_encode([
-                                    "method" => "canviFase",
-                                    "data" => [
-                                        "fase" => $game->estat->nom,
-                                        "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password', 'login']),
-                                        "posicio" => $game->torn_player,
-                                        "tropas" => $jugador->tropas,
-                                        "cartas" => $newCartes,
-                                        "temps" => 0,
-                                        "territoris" => $territoris,
-                                    ]
-                                ]));
+                                $jugadors = $game->jugadors;
+
+                                $users = [];
+                                foreach ($jugadors as $jugador) {
+                                    $user = $jugador->usuari()->first()->makeHidden(['password', 'login']);
+
+                                    $users[] = [
+                                        "jugador" => $user,
+                                        "posicio" => $jugador->skfNumero
+                                    ];
+                                }
+
+                                if (JugadorController::jugadorEnPartida($jugador, $game)) {
+                                    $from->send(json_encode([
+                                        "method" => "reconnect",
+                                        "data" => [
+                                            "jugadors" => $users,
+                                            "fronteres" => WebsocketManager::$gameManager->maps["world"],
+                                            "partida" => DB::select("select p.id, p.date, p.nom, (p.token = '') as publica, admin_id, COUNT(j.skfPartida_id) as current_players, max_players, p.tipus from partidas p LEFT JOIN jugadors j ON p.id = j.skfPartida_id where p.id = ".$game->id." GROUP BY p.id, p.date, p.nom, p.token, p.max_players, p.admin_id, p.estat_torn, p.tipus;")[0],
+                                            "territoris" => $territoris,
+                                            "fase" => $game->estat->nom,
+                                            "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password', 'login']),
+                                            "posicio" => $game->torn_player,
+                                            "tropas" => $jugador->tropas,
+                                            "cartas" => $newCartes,
+                                            "temps" => 0,
+                                        ],
+                                    ]));
+                                    $from->send(json_encode([
+                                        "method" => "canviFase",
+                                        "data" => [
+                                            "fase" => $game->estat->nom,
+                                            "jugadorActual" => $jugador->usuari()->first()->makeHidden(['password', 'login']),
+                                            "posicio" => $game->torn_player,
+                                            "tropas" => $jugador->tropas,
+                                            "cartas" => $newCartes,
+                                            "temps" => 0,
+                                            "territoris" => $territoris,
+                                        ]
+                                    ]));
+                                }
                      
                             }
                         }

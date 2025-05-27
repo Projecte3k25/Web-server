@@ -55,7 +55,7 @@ class GameManager
     {
         $player = JugadorController::getJugadorByUser($from);
 
-        if($player == null){
+        if ($player == null) {
             return;
         }
         $game = $player->partida;
@@ -212,21 +212,38 @@ class GameManager
         foreach ($deathsPlayers as $player) {
             $playerIds[] = $player->id;
         }
-
+        $b = 0;
         $i = 0;
         while (true) {
-            echo "\nBlocat " . $game->torn_player." ".$i;
+            $j = 0;
+            foreach ($game->jugadors as $jugador) {
+                if (JugadorController::jugadorEnPartida($jugador, $game)) {
+                    $j++;
+                }
+                if($jugador->usuari->id == 0){
+                    $b++;
+                }
+                echo "Jugadors en partida ".$j;
+
+            }
+            if ($j == 0 || ($j == 1 && $b < 0)) {
+                $game->estat_torn = 7;
+                $game->save();
+                $this->canviFaseJugador($player);
+                break;
+            }
+            echo "\nBlocat " . $game->torn_player . " " . $i . " " . $j;
             $i++;
             $game->torn_player = ($game->torn_player % count($game->jugadors)) + 1;
             $jugador = $game->jugadors()->where("skfNumero", $game->torn_player)->first();
             if (!in_array($jugador->id, $playerIds)) {
                 break;
             }
-            
-            if($i == count($game->jugadors)){
-               
+
+            if ($i == count($game->jugadors)) {
+
                 $game->estat_torn = 7;
-                if(isset($this->timers[$game->id])){
+                if (isset($this->timers[$game->id])) {
                     $this->timeManager->cancelTimer($this->timers[$game->id]);
                 }
                 break;
@@ -283,6 +300,49 @@ class GameManager
                 $game->refresh();
                 $this->eventsFase($game);
                 $this->enviarCanviFase($game, 60);
+                break;
+            case 7:
+                $jugadors = $game->jugadors;
+                $this->deathPlayers[$player->partida->id][] = $player;
+                $reversed = array_values(array_reverse($this->deathPlayers[$player->partida->id]));
+                $result = [];
+                $ranked = $player->partida->tipus == "Ranked";
+                foreach ($reversed as $index => $player) {
+                    $user = Usuari::find($player->usuari->id);
+                    $user->games++;
+                    if ($index == 0) {
+                        $user->wins++;
+                    }
+                    $eloChange = 0;
+                    if ($ranked) {
+                        $eloChange = $this->eloTable[$index];
+                        $user->elo += $eloChange;
+                    }
+                    $result[] = [
+                        "jugador" => [
+                            "id" => $user->id,
+                            "nom" => $user->nom,
+                            "avatar" => $user->avatar,
+                            "wins" => $user->wins,
+                            "games" => $user->games,
+                            "elo" => $user->elo,
+                        ],
+                        "eloChange" => $eloChange,
+                    ];
+                    $user->save();
+                }
+
+
+                foreach ($jugadors as $jugador2) {
+                    $usuari = $jugador2->usuari;
+                    if (JugadorController::jugadorEnPartida($jugador2, $game)) {
+                        $userConn = UsuariController::$usuaris[$usuari->id];
+                        $userConn->send(json_encode([
+                            "method" => "partidaTerminada",
+                            "data" => $result,
+                        ]));
+                    }
+                }
                 break;
         }
     }
@@ -473,23 +533,19 @@ class GameManager
 
             $bonus = [];
             foreach ($data->cards as $cards) {
-                if($cards->nom != "comodin"){
+                if ($cards->nom != "comodin") {
                     $carta = Pais::where('nom', $cards->nom)
-                    ->with('carta')
-                    ->first()?->carta;
+                        ->with('carta')
+                        ->first()?->carta;
                     $player->cartes()->detach($carta->id);
                     if (isset($territoris[$cards->nom])) {
                         $bonus[] = $cards->nom;
                         $territoris[$cards->nom]->tropes += 2;
                         $territoris[$cards->nom]->save();
                     }
-                }else{
+                } else {
                     $player->cartes()->detach(1);
                 }
-                
-                
-
- 
             }
 
             $player->tropas += $tropas;
@@ -686,7 +742,7 @@ class GameManager
                             $pAtack = 0;
                             $pDef = 0;
                             foreach ($numDef as $key => $value) {
-                                if(!isset($numAtack[$key])){
+                                if (!isset($numAtack[$key])) {
                                     break;
                                 }
                                 if ($numAtack[$key] <= $value) {

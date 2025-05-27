@@ -22,3 +22,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 */
 Route::post('/usuaris/login', [UsuariController::class,'login'])->name("login");
 Route::get('/usuaris/version', [UsuariController::class,'version'])->name("version");
+Route::post('/profile/avatar', [UsuariController::class,'uploadAvatar'])->name("avatar");
