@@ -63,7 +63,7 @@ class BotController extends Controller
                             ];
                         }
                     }
-                    WebsocketManager::$gameManager->enviarCanviFase($game, 1);
+                    WebsocketManager::$gameManager->enviarCanviFase($game, WebsocketManager::$gameManager->timetable[0]);
                 }else{
                     WebsocketManager::$gameManager->canviFaseJugador($player);
                 }
@@ -102,7 +102,7 @@ class BotController extends Controller
                 if($game->jugadors->sum('tropas') == 0){
                     WebsocketManager::$gameManager->canviFaseJugador($player);
                 }else{
-                    WebsocketManager::$gameManager->enviarCanviFase($game, 1);
+                    WebsocketManager::$gameManager->enviarCanviFase($game, WebsocketManager::$gameManager->timetable[0]);
                 }
                 break;
             case 4;
