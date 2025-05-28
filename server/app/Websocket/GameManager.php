@@ -503,6 +503,9 @@ class GameManager
             return false;
         }
         $LlistatTipus = array_map(function ($card) {
+            if($card->nom == "comodin"){
+                return 1;
+            }
             return Pais::where('nom', $card->nom)
                 ->with('carta')
                 ->first()?->carta->tipus;
