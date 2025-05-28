@@ -325,7 +325,7 @@ class GameManager
                 $this->nextTorn($game);
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
+                $this->enviarCanviFase($game, $this->timetable[2]);
                 break;
             case 7:
                 $jugadors = $game->jugadors;
