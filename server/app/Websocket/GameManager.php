@@ -27,6 +27,13 @@ class GameManager
     public $timers = [];
     public $cardsToRedem = [];
     public $deathPlayers = [];
+    public $timetable = [
+        10,
+        10,
+        60,
+        60,
+        60
+    ];
 
     public $eloTable = [
         10,
@@ -280,7 +287,7 @@ class GameManager
                 $game->torn_player = 1;
                 $game->save();
                 $game->refresh();
-                $this->enviarCanviFase($game, 1);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
 
                 break;
             case 2;
@@ -288,7 +295,7 @@ class GameManager
                 $game->torn_player = 1;
                 $game->save();
                 $game->refresh();
-                $this->enviarCanviFase($game, 1);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
                 break;
             case 3;
                 $game->estat_torn = 4;
@@ -296,21 +303,21 @@ class GameManager
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 60);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
                 break;
             case 4;
                 $game->estat_torn = 5;
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 60);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
                 break;
             case 5;
                 $game->estat_torn = 6;
                 $game->save();
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 60);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
                 break;
             case 6;
                 $game->estat_torn = 4;
@@ -318,7 +325,7 @@ class GameManager
                 $this->nextTorn($game);
                 $game->refresh();
                 $this->eventsFase($game);
-                $this->enviarCanviFase($game, 60);
+                $this->enviarCanviFase($game, $this->timetable[$game->estat_torn - 2]);
                 break;
             case 7:
                 $jugadors = $game->jugadors;
@@ -646,7 +653,7 @@ class GameManager
                     if (count($territoris) == count($this->maps["world"])) {
                         $this->canviFase($from, $data);
                     } else {
-                        $this->enviarCanviFase($game, 1);
+                        $this->enviarCanviFase($game, $this->timetable[0]);
                     }
                 } else {
                     WebsocketManager::error($from, "No pot colocar una tropa en aquest territori.");
@@ -686,7 +693,7 @@ class GameManager
                     if ($game->jugadors->sum('tropas') == 0) {
                         $this->canviFase($from, $data);
                     } else {
-                        $this->enviarCanviFase($game, 1);
+                        $this->enviarCanviFase($game, $this->timetable[1]);
                     }
                 } else {
                     WebsocketManager::error($from, "No pot colocar una tropa en aquest territori.");
