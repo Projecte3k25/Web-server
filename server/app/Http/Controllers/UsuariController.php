@@ -58,65 +58,58 @@ class UsuariController extends Controller
     ]));
   }
 
- public function uploadAvatar(Request $request)
-{
-  $user = null;
-  $load = false;
-  $id = 0;
-    try{
+  public function uploadAvatar(Request $request)
+  {
+    try {
       $token = $request->header('Authorization');
-      if (str_starts_with($token, 'Bearer ')) {
-          $token = substr($token, 7);
-          $decoded = JWT::decode($request->input($token), new Key(UsuariController::$jwt_key, 'HS256'));
-          $id = $decoded->id;
-          $user = Usuari::find($id);
-          $load = true;
+      if (!str_starts_with($token, 'Bearer ')) {
+        return response()->json(['message' => 'No autorizado'], 401);
       }
-      
-    }catch(Exception $e){
-      
-    }
-    if(!$load){
-      return;
-    }
-    $request->validate([
+
+      $token = substr($token, 7);
+      $decoded = JWT::decode($token, new Key(UsuariController::$jwt_key, 'HS256'));
+      $id = $decoded->id;
+      $user = Usuari::find($id);
+      if (!$user) {
+        return response()->json(['message' => 'Usuario no encontrado'], 404);
+      }
+
+      $request->validate([
         'avatar' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-    ]);
+      ]);
 
-    
-    $imageFile = $request->file('avatar');
-    $filename =  $id . '.jpg';
+      $imageFile = $request->file('avatar');
+      $filename = $id . '.jpg';
+      $destinationFolder = public_path('/media/avatars');
+      $destinationPath = $destinationFolder . '/' . $filename;
 
-    $destinationFolder = public_path('media/avatars');
-    $destinationPath = $destinationFolder . '/' . $filename;
-
-
-    if (!file_exists($destinationFolder)) {
+      if (!file_exists($destinationFolder)) {
         mkdir($destinationFolder, 0755, true);
+      }
+
+      $manager = new ImageManager(new Driver());
+      $image = $manager->read($imageFile->getPathname());
+
+      $width = $image->width();
+      $height = $image->height();
+      $size = min($width, $height);
+
+      $image->crop($size, $size, ($width - $size) / 2, ($height - $size) / 2);
+      $image->resize(300, 300);
+      $image->save($destinationPath, quality: 90);
+
+      $user->avatar = '/media/avatars/' . $filename;
+      $user->save();
+
+      return response()->json([
+        'avatarPath' => asset('/media/avatars/' . $filename),
+      ]);
+    } catch (\Throwable $e) {
+      \Log::error('Error al subir avatar: ' . $e->getMessage());
+      return response()->json([
+        'message' => 'Error interno al subir la imagen',
+        'error' => $e->getMessage() //debug
+      ], 500);
     }
-
-    $manager = new ImageManager(new Driver()); 
-
-    $image = $manager->read($imageFile->getPathname());
-
-    $width = $image->width();
-    $height = $image->height();
-    $size = min($width, $height);
-
-    $image->crop($size, $size, ($width - $size) / 2, ($height - $size) / 2);
-
-
-    $image->resize(300, 300);
-
-
-    $image->save($destinationPath, quality: 90);
-
-
-    $user->avatar = 'media/avatars/' . $filename;
-    $user->save();
-
-    return response()->json([
-        'avatarPath' => asset('media/avatars/' . $filename),
-    ]);
-}
+  }
 }
